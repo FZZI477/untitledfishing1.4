@@ -37,7 +37,7 @@ window.addEventListener("DOMContentLoaded", () => {
         };
 
         pushIf("Flood", .05);
-        pushIf("Drought", .05);
+        pushIf("Drought", .0075);
         pushIf("Acid Rain", .025);
 
         if (period === "day") {
@@ -94,6 +94,33 @@ window.addEventListener("DOMContentLoaded", () => {
 
       currentWeatherName = function() {
         return state.weather || state.currentWeather || "Clear";
+      };
+
+      // Drought no longer blocks rods without Superlure. Instead, ordinary rods
+      // operate at 25% of their base Luck/Haste/Steadiness and have all rod
+      // passives disabled for as long as Drought is active.
+      const originalCurrentRod = currentRod;
+      currentRod = function() {
+        const rod = originalCurrentRod();
+        if (!rod || state.weather !== "Drought" || rod.superlure) return rod;
+        return {
+          ...rod,
+          id:`drought-disabled-${rod.id}`,
+          haste:(rod.haste || 0) * .25,
+          luck:(rod.luck || 0) * .25,
+          steady:(rod.steady || 0) * .25,
+          // This bypasses the old hard Drought gate in castLine. The fake flag
+          // is only on this temporary clone; the real rod does NOT gain Superlure.
+          superlure:true,
+          canCoral:false,
+          passive:"Passive disabled by Drought (no Superlure)."
+        };
+      };
+
+      const originalWeatherSummary = weatherSummary;
+      weatherSummary = function(name) {
+        if (name === "Drought") return "All rods can fish. Rods without Superlure have -75% Luck, Haste, and Steadiness, and their passive abilities are disabled.";
+        return originalWeatherSummary(name);
       };
 
       // Updated player-facing event name while preserving the old save key.
