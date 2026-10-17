@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Untitled Fishing</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body data-location="gravitas" data-period="day" data-weather="clear" data-event="none">
+  <div id="sceneBackdrop" class="scene-backdrop"></div>
+  <div class="scene-vignette"></div>
+
+  <main class="app">
+    <header class="topbar pixel-panel">
+      <div class="title-wrap">
+        <div class="pixel-kicker">RETRO OCEAN COLLECTION RPG</div>
+        <h1>Untitled Fishing</h1>
+        <p class="subtitle">Fish, collect, mutate, and complete every bestiary in a pixel-style world.</p>
+      </div>
+      <div class="top-stats">
+        <div class="stat-pill"><span class="pill-label">Money</span><strong id="money">$0</strong></div>
+        <div class="stat-pill"><span class="pill-label">Rod</span><strong id="equippedTop">Twig Rod</strong></div>
+        <div class="stat-pill"><span class="pill-label">Time</span><strong><span id="periodIcon">☀</span> <span id="periodLabel">Day</span></strong><small id="periodTimer">10:00</small></div>
+        <div class="stat-pill"><span class="pill-label">Weather</span><strong id="weatherLabel">Clear</strong><small id="weatherTimer">5:00</small></div>
+        <div class="stat-pill"><span class="pill-label">Event</span><strong id="eventLabel">No Event</strong></div>
+      </div>
+    </header>
+
+    <section id="screen-fishing" class="screen-view active">
+      <div class="fishing-layout">
+        <section id="locationHero" class="pixel-panel location-hero">
+          <div class="hero-content">
+            <div id="sceneKicker" class="hero-kicker">Gravitas Waterfall • Day • Clear</div>
+            <h2 id="locationName">The Gravitas Waterfall</h2>
+            <p id="locationDesc">A roaring basin where ordinary river fish drift beside things pulled in by impossible gravity.</p>
+            <div class="hero-actions">
+              <button id="openRodBagBtn" class="pixel-button alt">🎒 Fishing Bag</button>
+              <button id="fishButton" class="pixel-button primary">Cast with Twig Rod</button>
+            </div>
+            <div id="castEtaLabel" class="small hero-note">Lure ETA: 6.75s</div>
+          </div>
+        </section>
+
+        <aside class="pixel-panel bag-preview">
+          <div class="section-head compact">
+            <div>
+              <div class="pixel-kicker">READY GEAR</div>
+              <h3>Rod Bag</h3>
+            </div>
+            <img src="assets/sprites/bag.png" class="bag-icon" alt="Rod bag" />
+          </div>
+          <div id="bagEquippedName" class="bag-name">Twig Rod</div>
+          <div id="bagEquippedStats" class="small"></div>
+          <div id="bagEquippedPassive" class="small"></div>
+          <div class="footer-actions">
+            <button id="openRodBagBtn2" class="pixel-button">Equip Rod</button>
+            <button id="switchLocationBtn" class="pixel-button">Travel</button>
+          </div>
+        </aside>
+
+        <section class="pixel-panel status-panel">
+          <div class="section-head"><div><div class="pixel-kicker">SESSION</div><h3>Fishing Status</h3></div></div>
+          <div class="two-col">
+            <div>
+              <div class="small">Active rod stats</div>
+              <div id="activeStats"></div>
+            </div>
+            <div>
+              <div class="small">Area completion</div>
+              <div class="progress-shell"><div id="areaProgress" class="progress-bar"></div></div>
+              <div id="areaCompletionText" class="completion"></div>
+            </div>
+          </div>
+          <div class="mini-board">
+            <div><span class="mini-label">Weather bonus</span><strong id="weatherBuffSummary">Clear waters.</strong></div>
+            <div><span class="mini-label">Current event</span><strong id="eventSummary">Nothing unusual is happening.</strong></div>
+          </div>
+          <div class="footer-actions">
+            <button id="sellAllBtn" class="pixel-button">Sell All Fish</button>
+          </div>
+        </section>
+
+        <section class="pixel-panel log-panel">
+          <div class="section-head"><div><div class="pixel-kicker">JOURNAL</div><h3>Recent Activity</h3></div></div>
+          <div id="log" class="log"></div>
+        </section>
+      </div>
+    </section>
+
+    <section id="screen-rods" class="screen-view"><div class="page-frame pixel-panel"><div id="rods"></div></div></section>
+    <section id="screen-bestiary" class="screen-view"><div class="page-frame pixel-panel bestiary-frame"><div id="bestiary"></div></div></section>
+    <section id="screen-inventory" class="screen-view"><div class="page-frame pixel-panel"><div id="inventory"></div></div></section>
+    <section id="screen-shop" class="screen-view">
+      <div class="page-frame pixel-panel">
+        <div id="shop" class="tab-view active">
+          <div class="section-head"><div><div class="pixel-kicker">GENERAL STORE</div><h3>Shop</h3></div></div>
+          <div class="shop-grid">
+            <div class="rod-card large-card">
+              <div class="rod-head"><div><strong>Sunstone</strong><div class="small">Skip the current day or night period once.</div></div><button id="buySunMaskBtn" class="pixel-button">Buy $300</button></div>
+              <div id="sunMaskCount" class="small">Owned: 0</div>
+            </div>
+          </div>
+          <button id="useSunMaskBtn" class="pixel-button primary">Use Sunstone</button>
+        </div>
+      </div>
+    </section>
+    <section id="screen-codes" class="screen-view">
+      <div class="page-frame pixel-panel">
+        <div id="codes" class="tab-view active">
+          <div class="section-head"><div><div class="pixel-kicker">BONUSES</div><h3>Redeem Codes</h3></div></div>
+          <p class="small">Codes can be redeemed once per save file.</p>
+          <div class="footer-actions">
+            <input id="codeInput" type="text" placeholder="Enter a code" autocomplete="off" />
+            <button id="redeemCodeBtn" class="pixel-button">Redeem</button>
+          </div>
+          <p id="codeMessage" class="small"></p>
+          <div class="rod-card large-card">
+            <strong>Active code effects</strong>
+            <div id="codeEffects" class="small">None</div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section id="screen-help" class="screen-view">
+      <div class="page-frame pixel-panel">
+        <div id="help" class="tab-view active">
+          <div class="section-head"><div><div class="pixel-kicker">GUIDEBOOK</div><h3>How to Play</h3></div></div>
+          <p>Cast your line, wait for the lure, then click the pixel-bubbles before they vanish. Each successful click adds 5% catch progress.</p>
+          <p>Steadiness increases the reaction time of every shake. Luck shifts catch rolls toward rarer fish, while Haste shortens lure time.</p>
+          <p>Every successful catch can receive a mutation. Some rods force special mutations, and weather can also change what appears.</p>
+          <p>Use the launchpad in the bottom-right corner to jump between Fishing, Rods, Bestiary, Inventory, Shop, Codes, and this guide.</p>
+          <div class="footer-actions">
+            <button id="resetBtn" class="pixel-button">Reset Save Data</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <button id="launchButton" class="launch-button" aria-label="Open launchpad">☰</button>
+
+  <div id="launchpadModal" class="modal modal-lite">
+    <div class="launchpad pixel-panel">
+      <div class="section-head compact"><div><div class="pixel-kicker">MENU BAR</div><h3>Launchpad</h3></div><button id="closeLaunchpadBtn" class="pixel-button small-btn">Close</button></div>
+      <div class="launch-grid">
+        <button class="launch-app" data-screen="fishing"><span class="launch-icon">🎣</span><span>Fishing</span></button>
+        <button class="launch-app" data-screen="rods"><span class="launch-icon">🪝</span><span>Rods</span></button>
+        <button class="launch-app" data-screen="bestiary"><span class="launch-icon">📖</span><span>Bestiary</span></button>
+        <button class="launch-app" data-screen="inventory"><span class="launch-icon">🎒</span><span>Inventory</span></button>
+        <button class="launch-app" data-screen="shop"><span class="launch-icon">🏪</span><span>Shop</span></button>
+        <button class="launch-app" data-screen="codes"><span class="launch-icon">⭐</span><span>Codes</span></button>
+        <button class="launch-app" data-screen="help"><span class="launch-icon">❔</span><span>How To Play</span></button>
+      </div>
+    </div>
+  </div>
+
+  <div id="rodBagModal" class="modal modal-lite">
+    <div class="bag-modal pixel-panel">
+      <div class="section-head compact"><div><div class="pixel-kicker">QUICK EQUIP</div><h3>Fishing Bag</h3></div><button id="closeRodBagBtn" class="pixel-button small-btn">Close</button></div>
+      <div id="rodBagList" class="bag-list"></div>
+    </div>
+  </div>
+
+  <div id="fatalError" style="display:none;position:fixed;left:12px;right:12px;bottom:12px;z-index:9999;background:#5d1320;color:white;border:2px solid #ff8798;border-radius:12px;padding:12px;white-space:pre-wrap;font-family:monospace"></div>
+
+  <div id="minigameModal" class="modal">
+    <div id="minigameBox" class="minigame-box">
+      <div id="miniDecor" class="mini-decor"></div>
+      <div class="mini-hud">
+        <strong id="miniFish">Something is biting...</strong>
+        <div class="progress-shell"><div id="catchProgress" class="progress-bar"></div></div>
+        <span id="miniInfo">Hits: 0/20</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="resultModal" class="modal">
+    <div class="result-card pixel-panel">
+      <div id="resultSpriteWrap" class="result-sprite-wrap"><img id="resultSprite" alt="Caught fish sprite" /></div>
+      <h2 id="resultTitle">Catch Result</h2>
+      <p id="resultText"></p>
+      <div id="resultBreakdown" class="result-breakdown"></div>
+      <button id="resultClose" class="pixel-button primary">Continue</button>
+    </div>
+  </div>
+
+  <script src="weather.js"></script>
+  <script src="fish.js"></script>
+  <script src="events.js"></script>
+  <script src="mutations.js"></script>
+  <script src="rods.js"></script>
+  <script src="saves.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
