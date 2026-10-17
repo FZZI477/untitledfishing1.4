@@ -24,33 +24,29 @@ const weatherData = {
     };
 
 // October 2026 weather / Sunstone balance patch.
-// This is installed after game.js finishes loading so it can safely replace the
-// old weather roller without changing the rest of the fishing code.
 window.addEventListener("DOMContentLoaded", () => {
       const NORMAL_WEATHERS = ["Clear","Clear","Rainy","Windy","Stormy","Sunny"];
 
-      // All listed chances are independent trigger rolls. If several rare
-      // weathers trigger on the same roll, the rarer one wins; equal-rarity
-      // ties favor the later/newer roll.
+      // Each rare weather rolls independently. If multiple rare weathers roll
+      // together, the rarer one overlaps the more common one. Equal-rarity ties
+      // favor the newer/later roll.
       function chooseUpdatedWeather(period, allowRainbow) {
         const candidates = [];
         const pushIf = (name, chance, label=name) => {
           if (Math.random() < chance) candidates.push({name, chance, label});
         };
 
-        // Weather available during both day and night.
         pushIf("Flood", .05);
         pushIf("Drought", .05);
         pushIf("Acid Rain", .025);
 
         if (period === "day") {
           pushIf("Eclipse", .03);
-          // Preserve the existing rare rainy-night -> day Rainbow roll.
           if (allowRainbow) pushIf("Rainbow", .01);
         } else {
           pushIf("Starstorm", .033);
-          // Lunar is the night version of Eclipse. Keep the internal weather
-          // name as Eclipse so the existing Eclipse bestiary/mutation logic works.
+          // Lunar is the night-only Eclipse roll. Internally it remains Eclipse
+          // so existing Eclipse bestiary/mutation mechanics stay compatible.
           pushIf("Eclipse", .005, "Lunar Eclipse");
         }
 
@@ -88,10 +84,7 @@ window.addEventListener("DOMContentLoaded", () => {
         state.weather = rolled.name;
         state.currentWeather = rolled.name;
 
-        if (rolled.name !== oldWeather) {
-          const display = rolled.label === "Lunar Eclipse" ? "Lunar Eclipse" : rolled.name;
-          addLog(`Weather changed to ${display}.`, "warning");
-        }
+        if (rolled.name !== oldWeather) addLog(`Weather changed to ${rolled.label}.`, "warning");
       };
 
       currentWeather = function() {
@@ -103,11 +96,40 @@ window.addEventListener("DOMContentLoaded", () => {
         return state.weather || state.currentWeather || "Clear";
       };
 
+      // Updated player-facing event name while preserving the old save key.
+      currentEventSummary = function() {
+        const events = [];
+        if (eventActive("sharkMigrationUntil")) events.push("Shark Migration");
+        if (eventActive("whaleAbundanceUntil")) events.push("Whale Migration");
+        return events.length ? events.join(" + ") : "No Event";
+      };
+
+      function renameWhaleLabels(root=document) {
+        const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+        const nodes = [];
+        while (walker.nextNode()) nodes.push(walker.currentNode);
+        for (const node of nodes) {
+          if (node.nodeValue && node.nodeValue.includes("Whale Abundance")) {
+            node.nodeValue = node.nodeValue.replaceAll("Whale Abundance", "Whale Migration");
+          }
+        }
+      }
+
+      if (typeof renderBestiary === "function") {
+        const originalRenderBestiary = renderBestiary;
+        renderBestiary = function() {
+          originalRenderBestiary();
+          const bestiary = document.getElementById("bestiary");
+          if (bestiary) renameWhaleLabels(bestiary);
+        };
+      }
+
       function rollSunstoneEvents() {
         const now = Date.now();
         const started = [];
 
-        // Both rolls are independent, so both events can coexist.
+        // Independent 3.3% rolls: both can coexist. Re-rolling an event refreshes
+        // it, so the newer occurrence overlaps/replaces the older timer.
         if (Math.random() < .033) {
           const wasActive = eventActive("sharkMigrationUntil");
           state.sharkMigrationUntil = now + 20 * 60 * 1000;
@@ -116,35 +138,29 @@ window.addEventListener("DOMContentLoaded", () => {
 
         if (Math.random() < .033) {
           const wasActive = eventActive("whaleAbundanceUntil");
-          // Keep the existing save key for compatibility; this is the whale
-          // migration/abundance event that unlocks Blue Whale and Moby.
           state.whaleAbundanceUntil = now + 15 * 60 * 1000;
           started.push(wasActive ? "Whale Migration refreshed" : "Whale Migration began");
         }
 
         for (const message of started) addLog(`${message} from the Sunstone!`, "warning");
-        return started;
       }
 
       useSunMask = function() {
         if (!(state.sunMasks > 0)) return;
 
         state.sunMasks--;
-        // Skip exactly one day/night period, then immediately reroll weather.
         state.cycleStart -= PERIOD_MS;
         state.weatherStart = Date.now() - WEATHER_MS;
         updateWeatherState(true);
-
-        // Sunstones also roll both events independently at 3.3% each.
         rollSunstoneEvents();
 
         addLog("Used a Sunstone: skipped the current period and rerolled weather/events.", "success");
         render();
+        renameWhaleLabels(document);
       };
 
-      // game.js attached its original Sunstone click handler before this patch
-      // ran. Replacing the button removes that old listener and prevents a
-      // single Sunstone from being consumed twice.
+      // Remove the original game.js Sunstone click listener so one use cannot
+      // consume two Sunstones or perform two weather rolls.
       const oldUseButton = document.getElementById("useSunMaskBtn");
       if (oldUseButton) {
         const replacement = oldUseButton.cloneNode(true);
@@ -152,7 +168,6 @@ window.addEventListener("DOMContentLoaded", () => {
         replacement.addEventListener("click", useSunMask);
       }
 
-      // Re-evaluate once with the patched functions so the top bar and timers
-      // immediately use the new system without touching the player's save.
       render();
+      renameWhaleLabels(document);
     });
