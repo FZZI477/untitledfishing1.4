@@ -1015,22 +1015,24 @@ let state = loadState();
       }
 
       if (code === "SECRETADMINMAX") {
-        for (const loc of Object.values(locations)) {
-          for (const fish of loc.fish) {
-            state.caught[fish[0]] = Math.max(1, state.caught[fish[0]] || 0);
-          }
-        }
         state.eventCaught = state.eventCaught || {};
+
+        // Complete absolutely every current bestiary entry, including optional,
+        // migration, location, weather/event, Unknown, and Extinct catches.
+        for (const fish of allFishPool()) {
+          state.caught[fish[0]] = Math.max(1, state.caught[fish[0]] || 0);
+        }
         for (const group of Object.values(eventBestiaries)) {
           for (const fish of group) {
             state.eventCaught[fish[0]] = Math.max(1, state.eventCaught[fish[0]] || 0);
-            state.caught[fish[0]] = Math.max(1, state.caught[fish[0]] || 0);
           }
         }
-        state.money += 1000000;
+
+        const adminGold = 1000000000000000;
+        state.money += adminGold;
         state.redeemedCodes.push(code);
-        message.textContent = "SECRETADMINMAX redeemed: complete-complete bestiary and $1,000,000!";
-        addLog("SECRETADMINMAX completed every location and weather bestiary and granted $1,000,000.", "success");
+        message.textContent = "SECRETADMINMAX redeemed: 100% ALL Bestiaries + $1,000,000,000,000,000 Gold!";
+        addLog("SECRETADMINMAX completed every bestiary entry, including all optional catches, and granted $1,000,000,000,000,000 Gold.", "success");
       } else if (code === "LMAO") {
         state.luckBoostUntil = Math.max(Date.now(), state.luckBoostUntil || 0) + 20 * 60 * 1000;
         state.redeemedCodes.push(code);
