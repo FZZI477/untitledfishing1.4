@@ -6,10 +6,10 @@ const rarityWeights = {
       Common: 58,
       Uncommon: 25,
       Rare: 10,
-      Mythical: 4.5,
-      Legendary: 1.8,
-      Unknown: 0.55,
-      Extinct: 0.15
+      Mythical: 4.0,
+      Legendary: 1.5,
+      Unknown: 0.25,
+      Extinct: 0.05
     };
 
 const shakeCounts = {
@@ -79,7 +79,7 @@ const fishDescriptions = {
       "Hammerhead Shark":"A legendary shark whose wide head senses movement across the shore.",
       "Megamouth Shark":"A rare deepwater giant with an enormous glowing mouth.",
       "Great White Shark":"The shore's legendary apex predator.",
-      "Blue Whale":"The largest known animal, catchable only during Whale Abundance.",
+      "Blue Whale":"The largest known animal, catchable only during Whale Migration.",
       "Moby":"A scarred white whale that sometimes replaces a Blue Whale encounter.",
       "Mosasaurus":"An ancient marine reptile awakened by Shark Migration.",
       "Helipricon":"A prehistoric shark relative armed with a spiral tooth whorl.",
@@ -174,7 +174,7 @@ const locations = {
           ["Hammerhead Shark","Legendary",1050],["Megamouth Shark","Legendary",1150],["Great White Shark","Legendary",1450],
           ["Blue Whale","Legendary",1800,false,"whale"],["Moby","Unknown",4500,false,"moby"],
           ["Mosasaurus","Unknown",6000,false,"migration"],["Helipricon","Unknown",5200,false,"migration"],
-          ["Megalodon","Extinct",12000,false,"migrationRequired"]
+          ["Megalodon","Extinct",10000,false,"migrationRequired"]
         ]
       },
 

@@ -3,6 +3,7 @@
 let state = loadState();
     if(!locations[state.location]) state.location="gravitas";
     if(!rods.some(r=>r.id===state.equipped)) state.equipped="twig";
+    if(state.equipped==="sunslasher") state.equipped="twig";
     state.currentWeather=state.weather||state.currentWeather||"Clear";
     let activeMini = null;
     let clockTimer = null;
@@ -95,7 +96,7 @@ let state = loadState();
       stats.luck = (stats.luck + weather.luckAdd) * weather.luckMult;
       stats.steady += weather.steadyAdd || 0;
       if (eventActive("sharkMigrationUntil") && state.location === "shark") stats.luck *= 1.5;
-      if (state.megaLuckStacks > 0) stats.luck *= 1 + state.megaLuckStacks * .075;
+      if (rod.id === "megaLoad" && state.megaLuckStacks > 0) stats.luck *= 1 + state.megaLuckStacks * .075;
       return stats;
     }
 
@@ -112,11 +113,21 @@ let state = loadState();
       return { caught, total:req.length, complete:caught === req.length, pct:req.length ? caught / req.length * 100 : 0 };
     }
 
+    function migrationCompletion(type) {
+      let entries = [];
+      if (type === "shark") entries = locations.shark.fish.filter(f => isSharkFish(f[0]) || ["migration","migrationRequired"].includes(f[4]));
+      if (type === "whale") entries = locations.shark.fish.filter(f => ["Blue Whale","Moby"].includes(f[0]));
+      const caught = entries.filter(f => (state.caught[f[0]] || 0) > 0).length;
+      return { caught, total:entries.length, complete:entries.length > 0 && caught === entries.length };
+    }
+
     function requirementMet(rod) {
+      if (rod.unavailable) return false;
       if (!rod.requirement) return true;
       if (rod.requirement === "gravitas") return locationCompletion("gravitas").complete;
       if (rod.requirement === "aurora") return locationCompletion("aurora").complete;
       if (rod.requirement === "all") return locationCompletion("gravitas").complete && locationCompletion("aurora").complete && locationCompletion("shark").complete;
+      if (rod.requirement === "bellona15") return locationOrder.every(id => locationCompletion(id).complete) && migrationCompletion("shark").complete && migrationCompletion("whale").complete;
       if (rod.requirement === "shark25") return locationCompletion("shark").pct >= 25;
       if (rod.requirement === "shark50") return locationCompletion("shark").pct >= 50;
       if (rod.requirement === "shark") return locationCompletion("shark").complete;
@@ -202,7 +213,7 @@ let state = loadState();
     function currentEventSummary() {
       const events=[];
       if(eventActive("sharkMigrationUntil")) events.push("Shark Migration");
-      if(eventActive("whaleAbundanceUntil")) events.push("Whale Abundance");
+      if(eventActive("whaleAbundanceUntil")) events.push("Whale Migration");
       return events.length ? events.join(" + ") : "No Event";
     }
 
@@ -425,7 +436,7 @@ let state = loadState();
       ];
       const eventFilters = [
         { id:"event:sharkMigration", label:"Shark Migration", entries:locations.shark.fish.filter(f=>isSharkFish(f[0])||f[4]==="migration"||f[4]==="migrationRequired") },
-        { id:"event:whaleAbundance", label:"Whale Abundance", entries:locations.shark.fish.filter(f=>f[0]==="Blue Whale"||f[0]==="Moby") }
+        { id:"event:whaleAbundance", label:"Whale Migration", entries:locations.shark.fish.filter(f=>f[0]==="Blue Whale"||f[0]==="Moby") }
       ];
       const weatherFilters = [
         { id:"weather:eclipse", label:"Eclipse", eventId:"eclipse" },
@@ -478,7 +489,7 @@ let state = loadState();
         const desc=!caught&&secret?"Its identity remains hidden until you catch it.":(fishDescriptions[name]||"No description recorded.");
         const thumb = getFishSprite(name, rarity, item, condition);
         let conditionText="";
-        if(condition==="day")conditionText="Day only"; if(condition==="night")conditionText="Night only"; if(condition==="dayOptional")conditionText="Day only · Optional"; if(condition==="lunar")conditionText="10% Mosslurker replacement"; if(condition==="optional")conditionText="Optional"; if(condition==="whale")conditionText="Whale Abundance"; if(condition==="moby")conditionText="10% Blue Whale replacement"; if(condition==="migration")conditionText="Shark Migration"; if(condition==="migrationRequired")conditionText="Shark Migration · Required"; if(condition==="coral")conditionText="Hides in Coral"; if(condition==="reefTitan")conditionText="10% Reef Titan replacement"; if(condition==="required")conditionText="Required"; if(condition==="elderKelpie")conditionText="10% Kelpie replacement";
+        if(condition==="day")conditionText="Day only"; if(condition==="night")conditionText="Night only"; if(condition==="dayOptional")conditionText="Day only · Optional"; if(condition==="lunar")conditionText="10% Mosslurker replacement"; if(condition==="optional")conditionText="Optional"; if(condition==="whale")conditionText="Whale Migration"; if(condition==="moby")conditionText="10% Blue Whale replacement"; if(condition==="migration")conditionText="Shark Migration"; if(condition==="migrationRequired")conditionText="Shark Migration · Required"; if(condition==="coral")conditionText="Hides in Coral"; if(condition==="reefTitan")conditionText="10% Reef Titan replacement"; if(condition==="required")conditionText="Required"; if(condition==="elderKelpie")conditionText="10% Kelpie replacement";
         return `<article class="bestiary-list-card ${caught?"caught":"uncaught"}"><div class="bestiary-thumb ${(!caught&&secret)?'locked':''}"><img src="${thumb}" alt="${displayName}"></div><div class="bestiary-copy"><div class="bestiary-card-top"><div><strong>${displayName}</strong></div><span class="badge ${rarity}">${rarity}</span></div><p>${desc}</p><div class="bestiary-meta"><span>${caught?`Caught: ${count}`:"Undiscovered"}</span><span>${caught||!secret?`Value: ${price}g`:"Value ???"}</span>${conditionText?`<span>${conditionText}</span>`:""}${item?`<span>Item Catch</span>`:""}</div></div></article>`;
       }).join("");
 
@@ -519,6 +530,7 @@ let state = loadState();
     function equipRod(id) {
       if (!state.owned.includes(id)) return;
       const rod=rods.find(r=>r.id===id);
+      if (rod?.unavailable) { addLog(`${rod.name} is temporarily unavailable until the Rainbow Pond expansion.`,"warning"); return; }
       if (rod?.shoreOnly && state.location !== "shark") { addLog(`${rod.name} can only be equipped at Shark Shores.`,"warning"); return; }
       state.equipped = id;
       addLog(`Equipped ${currentRod().name}.`);
@@ -532,9 +544,10 @@ let state = loadState();
         state.sharkMigrationUntil = Date.now() + 20 * 60 * 1000;
         addLog("Shark Migration began! All shark species are catchable for 20 minutes.", "warning");
       }
-      if (!eventActive("whaleAbundanceUntil") && Math.random() < .04) {
+      if (!eventActive("whaleAbundanceUntil") && Math.random() < .03) {
         state.whaleAbundanceUntil = Date.now() + 15 * 60 * 1000;
-        addLog("Whale Abundance began! Blue Whales and Moby can now appear for 15 minutes.", "warning");
+        state.whaleMigrationBlueWhales = 0;
+        addLog("Whale Migration began! It ends after 1 Moby or 5 Blue Whales.", "warning");
       }
     }
 
@@ -557,7 +570,6 @@ let state = loadState();
         if(c==="whale") return eventActive("whaleAbundanceUntil");
         if(c==="migration"||c==="migrationRequired") return eventActive("sharkMigrationUntil");
         if(state.location==="shark"&&isSharkFish(f[0])&&!eventActive("sharkMigrationUntil")) return false;
-        if(weather==="Flood"&&["Unknown","Extinct"].includes(f[1])) return false;
         return true;
       });
       if(rod.id==="electromagnetic") pool=pool.filter(f=>f[3]===true);
@@ -638,10 +650,6 @@ let state = loadState();
       document.getElementById("minigameModal").classList.add("active");
 
       const interval = Math.max(260, 650 - Math.min(250, effectiveStats(rod).haste));
-      if (rod.id === "megaLoad") {
-        const megaTimer=setInterval(()=>{if(!activeMini||activeMini.ended)return clearInterval(megaTimer);activeMini.hits=Math.min(20,activeMini.hits+1.6);document.getElementById("catchProgress").style.width=`${Math.min(100,activeMini.hits*5)}%`;if(activeMini.hits>=20)finishMinigame();},6700);
-        activeMini.timers.push(megaTimer);
-      }
       spawnShake();
       const timer = setInterval(() => {
         if (!activeMini || activeMini.ended) return clearInterval(timer);
@@ -686,7 +694,7 @@ let state = loadState();
       let life = 1280 + Math.max(0, effectiveStats().steady) * 60;
       life *= currentWeather().life;
       if (currentRod().id === "harpoon" && isSharkFish(activeMini.fish[0])) life += 1000;
-      if (activeMini.slowShakes > 0) { life *= 1.88; activeMini.slowShakes--; }
+      if (activeMini.slowShakes > 0) { life *= 1.66; activeMini.slowShakes--; }
 
       activeMini.coralCounter = (activeMini.coralCounter || 0) + 1;
       const isCoralShake = currentRod().id === "coral" && activeMini.coralCounter % 3 === 0;
@@ -703,7 +711,7 @@ let state = loadState();
         if (clicked || !activeMini || activeMini.ended) return;
         clicked = true;
         let gainHits=isCoralShake?4:1;
-        if(currentRod().id==="coralguard"&&Math.random()<.20)gainHits*=2;
+        if(currentRod().id==="coralguard"&&Math.random()<.40)gainHits*=3;
         activeMini.hits+=gainHits;
         btn.remove();
         const pct = Math.min(100, activeMini.hits * 5);
@@ -722,9 +730,9 @@ let state = loadState();
           }
           if (currentRod().id === "fishkeeper") activeMini.durationBonus = Math.min(0.30, (activeMini.durationBonus || 0) + 0.05);
           if (currentRod().id === "megaLoad") state.megaLuckStacks = (state.megaLuckStacks || 0) + 1;
-          if (currentRod().id === "anglersEye" && Math.random() < .088) {
-            activeMini.hits = Math.min(20, activeMini.hits + 4);
-            activeMini.slowShakes = (activeMini.slowShakes || 0) + 3;
+          if (currentRod().id === "anglersEye" && Math.random() < .20) {
+            activeMini.hits = Math.min(20, activeMini.hits + 1.76);
+            activeMini.slowShakes = (activeMini.slowShakes || 0) + 2;
             document.getElementById("catchProgress").style.width = `${Math.min(100,activeMini.hits*5)}%`;
             if (activeMini.hits >= 20) finishMinigame();
           }
@@ -764,7 +772,7 @@ let state = loadState();
       const period = getPeriod();
       let roll = Math.random();
       let cumulative = 0;
-      const chanceBoost = currentRod().id === "megaLoad" ? 1.33 : 1;
+      const chanceBoost = currentRod().id === "megaLoad" ? 1.15 : 1;
       for (const mutation of naturalMutations) {
         if (mutation.nightOnly && period !== "night") continue;
         cumulative += mutation.chance * chanceBoost;
@@ -813,9 +821,15 @@ let state = loadState();
         else if(sr<.80){mutation="Tanned Mutation";multiplier=2;}
       }
 
-      if (rod.id === "gravidoomer" && Math.random() < .50) {
-        mutation = "Gravitational Mutation";
-        multiplier = 1.8;
+      if (rod.id === "gravidoomer") {
+        const gravRoll = Math.random();
+        if (gravRoll < .098) {
+          mutation = "Gravitas Mutation";
+          multiplier = 3.14;
+        } else if (gravRoll < .598) {
+          mutation = "Gravitational Mutation";
+          multiplier = 2;
+        }
       }
 
       if (rod.id === "aurora") {
@@ -826,8 +840,18 @@ let state = loadState();
         }
       }
 
-      if (rod.id === "fortuneous" && Math.random() < .27) extraCopies++;
-      if (rod.id === "megaLoad" && Math.random() < .33) extraCopies++;
+      if (rod.id === "anglersEye") {
+        const eyeRoll = Math.random();
+        if (eyeRoll < .088) {
+          mutation = "Eerie Mutation";
+          multiplier = 2.22;
+        } else if (eyeRoll < .31) {
+          mutation = "Zenith Mutation";
+          multiplier = 1.88;
+        }
+      }
+
+      if (rod.id === "fortuneous" && Math.random() < .10) extraCopies++;
 
       if (rod.id === "bellona" && result.perfect) {
         extraCopies++;
@@ -852,9 +876,25 @@ let state = loadState();
         state.eventCaught[name]=(state.eventCaught[name]||0)+1+extraCopies;
       }
       state.lastCaughtRarity=rarity;
+
+      if (eventActive("whaleAbundanceUntil")) {
+        if (name === "Moby") {
+          state.whaleAbundanceUntil = 0;
+          state.whaleMigrationBlueWhales = 0;
+          addLog("Whale Migration ended after Moby was caught.", "warning");
+        } else if (name === "Blue Whale") {
+          state.whaleMigrationBlueWhales = (state.whaleMigrationBlueWhales || 0) + 1 + extraCopies;
+          if (state.whaleMigrationBlueWhales >= 5) {
+            state.whaleAbundanceUntil = 0;
+            state.whaleMigrationBlueWhales = 0;
+            addLog("Whale Migration ended after 5 Blue Whales were caught.", "warning");
+          }
+        }
+      }
+
       let mysteryCount=0;
-      if (rod.id === "megaLoad" && Math.random() < .88) {
-        mysteryCount = 1 + (Math.random() < .5 ? 1 : 0);
+      if (rod.id === "megaLoad") {
+        mysteryCount = (Math.random() < .50 ? 1 : 0) + (Math.random() < .50 ? 1 : 0);
         const pool=getAvailablePool();
         for(let i=0;i<mysteryCount;i++){
           const mf=pool[Math.floor(Math.random()*pool.length)];
@@ -1088,15 +1128,6 @@ Line ${event.lineno}:${event.colno}`;}
       const previous = document.getElementById("periodLabel").textContent.toLowerCase();
       updateClock();
       renderCodeEffects();
-      if(previous!==getPeriod()){
-        if(Math.random()<.05){
-          const hunts=["Eclipse","Acid Rain","Drought","Flood","Tsunami"];
-          state.weather=hunts[Math.floor(Math.random()*hunts.length)];
-          state.currentWeather=state.weather;
-          state.weatherStart=Date.now();
-          addLog(`A hunt has begun: ${state.weather}!`,"warning");
-        }
-        render();
-      }
+      if(previous!==getPeriod()) render();
       } catch(error) { console.error(error); }
     }, 1000);
