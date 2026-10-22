@@ -414,8 +414,9 @@ let state = loadState();
         if (rod.id === "splitbranch") stats += ` / Alt: -5 Haste · 88 Luck · 0 Steadiness`;
         if (rod.id === "snowflake" && owned) stats += ` · Integrity ${state.snowflakeIntegrity.toFixed(0)}%`;
         let button = "";
-        if (owned) button = `<button class="pixel-button" ${equipped ? "disabled" : ""} onclick="equipRod('${rod.id}')">${equipped ? "Equipped" : "Equip"}</button>`;
-        else button = `<button class="pixel-button" ${(!met || state.money < rod.price) ? "disabled" : ""} onclick="buyRod('${rod.id}')">Buy ${formatMoney(rod.price)}</button>`;
+        if (rod.unavailable) button = `<button class="pixel-button" disabled>Unavailable</button>`;
+        else if (owned) button = `<button class="pixel-button" ${equipped ? "disabled" : ""} onclick="equipRod('${rod.id}')">${equipped ? "Equipped" : "Equip"}</button>`;
+        else button = `<button class="pixel-button" ${(!met || state.money < rod.price) ? "disabled" : ""} onclick="buyRod('${rod.id}')">${rod.price === 0 ? "Claim" : `Buy ${formatMoney(rod.price)}`}</button>`;
         return `<div class="rod-card"><div class="rod-head"><div><strong>${rod.name}</strong><div class="rod-stats">${stats}</div></div>${button}</div><div class="small">${rod.passive || "No passive."}</div><div class="small">${owned ? "Owned" : rod.unlock}${!locationMet ? ` — only sold at ${rod.shoreOnly ? "Shark Shores" : locations[rod.shopLocation]?.name || "its home area"}` : (!met ? " — requirement not met" : "")}</div></div>`;
       }).join("");
 
