@@ -4,8 +4,9 @@ const PERIOD_MS = 10 * 60 * 1000;
 const WEATHER_MS = 5 * 60 * 1000;
 const SUN_MASK_PRICE = 300;
 const SUNSTONE_COOLDOWN_MS = 3 * 60 * 1000;
+const SEASON_MS = 60 * 60 * 1000;
 
-const locationOrder = ["gravitas", "aurora", "shark", "grandreef"];
+const locationOrder = ["gravitas", "aurora", "shark", "grandreef", "rainbow"];
 
 const weatherData = {
       Clear:{haste:0,luckMult:1,luckAdd:0,life:1,value:1},
