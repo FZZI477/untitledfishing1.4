@@ -79,6 +79,19 @@ body[data-location="grandreef"] .scene-backdrop {
     radial-gradient(circle at 78% 75%, rgba(255,177,84,.28), transparent 14%),
     linear-gradient(180deg, #7bdaf4 0 30%, #2f8ba2 30% 40%, #17515b 40% 100%);
 }
+body[data-location="rainbow"] .scene-backdrop {
+  background:
+    radial-gradient(circle at 14% 18%, rgba(255,99,132,.62), transparent 15%),
+    radial-gradient(circle at 32% 14%, rgba(255,193,82,.56), transparent 16%),
+    radial-gradient(circle at 52% 17%, rgba(111,232,129,.5), transparent 17%),
+    radial-gradient(circle at 72% 15%, rgba(91,185,255,.52), transparent 16%),
+    radial-gradient(circle at 88% 19%, rgba(190,116,255,.5), transparent 15%),
+    linear-gradient(180deg, #9be8ff 0 28%, #58b5d0 28% 42%, #266f82 42% 100%);
+}
+body[data-location="rainbow"] .scene-backdrop::before {
+  background: repeating-linear-gradient(120deg, rgba(255,255,255,.08) 0 5px, transparent 5px 22px), radial-gradient(circle at 50% 80%, rgba(255,232,139,.18), transparent 28%);
+  opacity:.8;
+}
 body[data-period="night"] .scene-backdrop { filter: brightness(.65) saturate(1.1); }
 body[data-period="night"] .scene-backdrop::after {
   background: radial-gradient(circle at 80% 16%, rgba(255,248,214,.5), transparent 7%), radial-gradient(circle at 12% 8%, rgba(255,255,255,.35), transparent 2%), radial-gradient(circle at 30% 12%, rgba(255,255,255,.28), transparent 1.6%), radial-gradient(circle at 48% 18%, rgba(255,255,255,.32), transparent 1.2%), radial-gradient(circle at 67% 10%, rgba(255,255,255,.28), transparent 1.5%);
@@ -234,6 +247,7 @@ body[data-weather="drought"] .scene-backdrop {
 .Legendary, .badge.Legendary { color: #744900; }
 .Unknown, .badge.Unknown { color: #943565; }
 .Extinct, .badge.Extinct { color: #8d2121; }
+.Secret, .badge.Secret { color:#fff4a3; background:#251838; border-color:#f2c94c; text-shadow:0 0 8px rgba(255,218,93,.6); }
 .Common { background:#ede1c6; }
 .Uncommon { background:#b6ef9e; }
 .Rare { background:#97ccff; }
@@ -297,10 +311,13 @@ body[data-weather="drought"] .scene-backdrop {
 
 /* Inventory */
 .inventory-card {
-  display:grid; grid-template-columns: 86px minmax(0,1fr) auto; gap: 14px; align-items:center;
+  display:grid; grid-template-columns: 86px minmax(0,1fr) auto; gap: 14px; align-items:center; position:relative; padding-right:58px;
 }
 .inventory-card img { width: 72px; height: 72px; object-fit: contain; }
 .inventory-details strong { font-size:1.15rem; }
+.favorite-star { position:absolute; top:8px; right:8px; width:38px; height:38px; border:2px solid rgba(255,255,255,.26); border-radius:10px; background:rgba(8,20,34,.78); color:#b9c6d2; cursor:pointer; font-size:1.15rem; }
+.favorite-star.active { color:#ffd84f; border-color:#ffd84f; box-shadow:0 0 12px rgba(255,216,79,.24); }
+.inventory-actions { display:flex; align-items:center; gap:8px; }
 
 /* Minigame */
 .minigame-box {
@@ -314,6 +331,7 @@ body[data-weather="drought"] .scene-backdrop {
 .minigame-box[data-location="aurora"] { background: radial-gradient(circle at 20% 15%, rgba(108,255,233,.25), transparent 18%), radial-gradient(circle at 80% 20%, rgba(210,142,255,.28), transparent 22%), linear-gradient(180deg, #354c9e 0%, #12274e 56%, #0f1d3a 100%); }
 .minigame-box[data-location="shark"] { background: linear-gradient(180deg, #4d85aa 0%, #183a5d 52%, #071a2a 100%); }
 .minigame-box[data-location="grandreef"] { background: radial-gradient(circle at 15% 70%, rgba(255,144,177,.15), transparent 12%), radial-gradient(circle at 72% 70%, rgba(255,170,92,.12), transparent 10%), linear-gradient(180deg, #48b2d0 0%, #0d6175 56%, #0b2e3a 100%); }
+.minigame-box[data-location="rainbow"] { background: radial-gradient(circle at 15% 12%, rgba(255,104,146,.20), transparent 17%), radial-gradient(circle at 48% 10%, rgba(255,220,99,.16), transparent 18%), radial-gradient(circle at 82% 12%, rgba(167,112,255,.18), transparent 18%), linear-gradient(180deg, #52bad5 0%, #176b83 56%, #0b3547 100%); }
 .minigame-box[data-period="night"] { filter: saturate(1.08) brightness(.92); }
 .minigame-box[data-weather="stormy"]::after, .minigame-box[data-weather="acid-rain"]::after { content:""; position:absolute; inset:0; pointer-events:none; background: repeating-linear-gradient(100deg, transparent 0 16px, rgba(255,255,255,.14) 16px 18px, transparent 18px 32px); opacity:.24; }
 .minigame-box[data-weather="starstorm"]::after { content:""; position:absolute; inset:0; pointer-events:none; background: radial-gradient(circle at 15% 12%, rgba(255,255,255,.6), transparent 1%), radial-gradient(circle at 60% 20%, rgba(171,229,255,.54), transparent 1.2%), radial-gradient(circle at 80% 32%, rgba(211,156,255,.48), transparent 1.1%); }
@@ -349,6 +367,7 @@ body[data-weather="drought"] .scene-backdrop {
 .location-hero.aurora { background: radial-gradient(circle at 20% 16%, rgba(94,255,228,.38), transparent 16%), radial-gradient(circle at 78% 20%, rgba(214,132,255,.34), transparent 18%), linear-gradient(180deg, #7183e2 0 28%, #274883 28% 58%, #12274d 58% 100%); }
 .location-hero.shark { background: linear-gradient(180deg, #7fb9dc 0 25%, #2d6491 25% 58%, #0d2946 58% 100%); }
 .location-hero.reef { background: radial-gradient(circle at 10% 80%, rgba(255,132,161,.32), transparent 12%), radial-gradient(circle at 82% 84%, rgba(255,184,115,.25), transparent 12%), linear-gradient(180deg, #80e4f0 0 28%, #2790a8 28% 58%, #104354 58% 100%); }
+.location-hero.rainbow { background: radial-gradient(circle at 12% 16%, rgba(255,103,145,.38), transparent 14%), radial-gradient(circle at 36% 14%, rgba(255,212,91,.34), transparent 16%), radial-gradient(circle at 62% 16%, rgba(92,230,148,.3), transparent 18%), radial-gradient(circle at 86% 14%, rgba(177,116,255,.34), transparent 16%), linear-gradient(180deg, #8feaff 0 28%, #3eabc6 28% 58%, #15566b 58% 100%); }
 
 @media (max-width: 1100px) {
   .fishing-layout { grid-template-columns: 1fr; grid-template-areas: "hero" "bag" "status" "log"; }
