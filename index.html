@@ -21,6 +21,7 @@
         <div class="stat-pill"><span class="pill-label">Money</span><strong id="money">$0</strong></div>
         <div class="stat-pill"><span class="pill-label">Rod</span><strong id="equippedTop">Twig Rod</strong></div>
         <div class="stat-pill"><span class="pill-label">Time</span><strong><span id="periodIcon">☀</span> <span id="periodLabel">Day</span></strong><small id="periodTimer">10:00</small></div>
+        <div class="stat-pill"><span class="pill-label">Season</span><strong id="seasonLabel">Spring</strong><small id="seasonTimer">60:00</small></div>
         <div class="stat-pill"><span class="pill-label">Weather</span><strong id="weatherLabel">Clear</strong><small id="weatherTimer">5:00</small></div>
         <div class="stat-pill"><span class="pill-label">Event</span><strong id="eventLabel">No Event</strong></div>
       </div>
@@ -98,6 +99,14 @@
             <div class="rod-card large-card">
               <div class="rod-head"><div><strong>Sunstone</strong><div class="small">Skip the current day or night period once.</div></div><button id="buySunMaskBtn" class="pixel-button">Buy $300</button></div>
               <div id="sunMaskCount" class="small">Owned: 0</div>
+            </div>
+            <div class="rod-card large-card">
+              <div class="rod-head"><div><strong>Tiki Totem</strong><div class="small">Override the current Season for 5 minutes. The real hourly season keeps running underneath.</div></div><button id="buyTikiTotemBtn" class="pixel-button">Buy $1,000</button></div>
+              <div class="footer-actions">
+                <select id="tikiSeasonSelect" aria-label="Choose a season"><option>Spring</option><option>Summer</option><option>Autumn</option><option>Winter</option></select>
+                <button id="useTikiTotemBtn" class="pixel-button">Use Tiki Totem</button>
+              </div>
+              <div id="tikiTotemCount" class="small">Owned: 0</div>
             </div>
           </div>
           <button id="useSunMaskBtn" class="pixel-button primary">Use Sunstone</button>
