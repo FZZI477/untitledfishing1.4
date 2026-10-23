@@ -382,6 +382,13 @@ let state = loadState();
       document.getElementById("equippedTop").textContent = currentRod().name;
       document.getElementById("periodIcon").textContent = period === "day" ? "☀" : "☾";
       document.getElementById("periodLabel").textContent = period === "day" ? "Day" : "Night";
+      const seasonLabel=document.getElementById("seasonLabel");
+      const seasonTimer=document.getElementById("seasonTimer");
+      if(seasonLabel) seasonLabel.textContent=getSeason();
+      if(seasonTimer){
+        const seasonMs=getSeasonRemaining(), sm=Math.floor(seasonMs/60000), ss=Math.floor((seasonMs%60000)/1000);
+        seasonTimer.textContent=`${sm}:${String(ss).padStart(2,"0")}${(state.seasonOverrideUntil||0)>Date.now()?" override":""}`;
+      }
 
       const loc = locations[state.location];
       document.getElementById("locationName").textContent = loc.name;
@@ -405,6 +412,10 @@ let state = loadState();
       switchBtn.disabled=unlocked.length<=1;
       document.getElementById("sunMaskCount").textContent = `Owned: ${state.sunMasks || 0}`;
       document.getElementById("useSunMaskBtn").disabled = !(state.sunMasks > 0);
+      const tikiCount=document.getElementById("tikiTotemCount");
+      if(tikiCount) tikiCount.textContent=`Owned: ${countInventoryByName("Tiki Totem")}`;
+      const tikiUse=document.getElementById("useTikiTotemBtn");
+      if(tikiUse) tikiUse.disabled=countInventoryByName("Tiki Totem")<=0;
       applySceneTheme();
       renderFishingPanel();
       renderRods();
@@ -1186,6 +1197,10 @@ let state = loadState();
       const period = getPeriod();
       document.getElementById("periodIcon").textContent = period === "day" ? "☀" : "☾";
       document.getElementById("periodLabel").textContent = period === "day" ? "Day" : "Night";
+      const seasonLabel=document.getElementById("seasonLabel");
+      const seasonTimer=document.getElementById("seasonTimer");
+      if(seasonLabel) seasonLabel.textContent=getSeason();
+      if(seasonTimer){const seasonMs=getSeasonRemaining(),sm=Math.floor(seasonMs/60000),ss=Math.floor((seasonMs%60000)/1000);seasonTimer.textContent=`${sm}:${String(ss).padStart(2,"0")}${(state.seasonOverrideUntil||0)>Date.now()?" override":""}`;}
       updateWeatherState();
       document.getElementById("weatherLabel").textContent = state.weather || "Clear";
       const wr=getWeatherRemaining(), wm=Math.floor(wr/60000), ws=Math.floor((wr%60000)/1000);
@@ -1200,6 +1215,8 @@ let state = loadState();
     document.getElementById("sellAllBtn").addEventListener("click", sellAll);
     document.getElementById("buySunMaskBtn").addEventListener("click", buySunMask);
     document.getElementById("useSunMaskBtn").addEventListener("click", useSunMask);
+    document.getElementById("buyTikiTotemBtn").addEventListener("click", buyTikiTotem);
+    document.getElementById("useTikiTotemBtn").addEventListener("click", useTikiTotem);
     document.getElementById("redeemCodeBtn").addEventListener("click", redeemCode);
     document.getElementById("codeInput").addEventListener("keydown", event => {
       if (event.key === "Enter") redeemCode();
@@ -1228,6 +1245,7 @@ let state = loadState();
     window.buyRod = buyRod;
     window.equipRod = equipRod;
     window.sellInventoryKey = sellInventoryKey;
+    window.toggleFavoriteFish = toggleFavoriteFish;
 
     window.addEventListener("error",event=>{
       const box=document.getElementById("fatalError");
