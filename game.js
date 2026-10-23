@@ -540,14 +540,18 @@ let state = loadState();
     function renderInventory() {
       const el = document.getElementById("inventory");
       const entries = Object.entries(state.inventory).filter(([,data]) => data.count > 0);
+      for (const [,data] of entries) {
+        if (SECRET_NAMES.has(data.displayName) && !isFavoriteFish(data.displayName)) setFavoriteFish(data.displayName,true);
+      }
       if (!entries.length) {
         el.innerHTML = `<div class="section-head"><div><div class="pixel-kicker">STORAGE</div><h3>Inventory</h3></div></div><p class="small">No catches stored.</p>`;
         return;
       }
       el.innerHTML = `<div class="section-head"><div><div class="pixel-kicker">STORAGE</div><h3>Inventory</h3></div></div>` + entries.map(([key,data]) => {
         const total = data.count * data.unitValue;
-        const sprite = getFishSprite(data.displayName, 'Common', /mutation/i.test(data.mutation||'') && /skele|phantom/.test((data.mutation||'').toLowerCase()) );
-        return `<div class="inventory-row inventory-card"><img src="${sprite}" alt="${data.displayName}"><div class="inventory-details"><strong>${data.displayName}</strong><div class="small">${data.count} × ${formatMoney(data.unitValue)}${data.mutation ? ` · ${data.mutation}` : ""}</div></div><button class="pixel-button" onclick="sellInventoryKey('${encodeURIComponent(key)}')">Sell ${formatMoney(total)}</button></div>`;
+        const sprite = getFishSprite(data.displayName, "Common", /mutation/i.test(data.mutation||"") && /skele|phantom/.test((data.mutation||"").toLowerCase()));
+        const favorite = isFavoriteFish(data.displayName);
+        return `<div class="inventory-row inventory-card"><button class="favorite-star ${favorite?"active":""}" title="${favorite?"Unfavorite":"Favorite"} ${data.displayName}" onclick="toggleFavoriteFish('${encodeURIComponent(data.displayName)}')">${favorite?"★":"☆"}</button><img src="${sprite}" alt="${data.displayName}"><div class="inventory-details"><strong>${data.displayName}</strong><div class="small">${data.count} × ${formatMoney(data.unitValue)}${data.mutation ? ` · ${data.mutation}` : ""}</div></div><div class="inventory-actions"><button class="pixel-button" onclick="sellInventoryKey('${encodeURIComponent(key)}')">Sell ${formatMoney(total)}</button></div></div>`;
       }).join("");
     }
 
@@ -973,14 +977,35 @@ let state = loadState();
     function addInventory(name, basePrice, mutation, multiplier, count) {
       const key = `${name}__${mutation || "Normal"}`;
       if (!state.inventory[key]) {
-        state.inventory[key] = {
-          displayName:name,
-          mutation:mutation,
-          unitValue:Math.round(basePrice * multiplier),
-          count:0
-        };
+        state.inventory[key] = { displayName:name, mutation:mutation, unitValue:Math.round(basePrice * multiplier), count:0 };
       }
       state.inventory[key].count += count;
+      if (SECRET_NAMES.has(name)) setFavoriteFish(name,true);
+    }
+
+    function toggleFavoriteFish(encodedName) {
+      const name = decodeURIComponent(encodedName);
+      if (SECRET_NAMES.has(name)) {
+        addLog(`${name} is Secret and stays automatically favorited.`, "warning");
+        return;
+      }
+      setFavoriteFish(name,!isFavoriteFish(name));
+      renderInventory();
+    }
+
+    function countInventoryByName(name) {
+      return Object.values(state.inventory).reduce((n,d)=>n+(d.displayName===name?d.count:0),0);
+    }
+
+    function consumeInventoryByName(name, amount=1) {
+      let remaining=amount;
+      for(const [key,data] of Object.entries(state.inventory)){
+        if(data.displayName!==name||remaining<=0) continue;
+        const used=Math.min(remaining,data.count);
+        data.count-=used; remaining-=used;
+        if(data.count<=0) delete state.inventory[key];
+      }
+      return remaining===0;
     }
 
     function afterCatchAttempt() {
@@ -1020,15 +1045,20 @@ let state = loadState();
     }
 
     function sellAll() {
-      let total = 0;
-      for (const data of Object.values(state.inventory)) total += data.count * data.unitValue;
+      let total = 0, kept = 0;
+      for (const [key,data] of Object.entries(state.inventory)) {
+        if (isFavoriteFish(data.displayName)) { kept += data.count; continue; }
+        total += data.count * data.unitValue;
+        delete state.inventory[key];
+      }
       if (!total) {
-        addLog("There is nothing to sell.", "warning");
+        addLog(kept ? "Sell All skipped your favorited fish." : "There is nothing to sell.", "warning");
+        renderInventory();
         return;
       }
       state.money += total;
-      state.inventory = {};
-      addLog(`Sold all catches for ${formatMoney(total)}.`, "success");
+      const keptText = kept ? ` Kept ${kept} favorited catch${kept===1?"":"es"}.` : "";
+      addLog(`Sold all non-favorited catches for ${formatMoney(total)}.${keptText}`, "success");
       render();
     }
 
