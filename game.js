@@ -589,8 +589,24 @@ let state = loadState();
       }
     }
 
+    function fishConditionMet(f, allowSecret=false) {
+      const rod=currentRod(), period=getPeriod(), weather=currentWeatherName(), meta=fishMeta(f), c=f[4];
+      if (isSecretFish(f) && !allowSecret) return false;
+      if (meta.period && meta.period !== period) return false;
+      if (meta.seasons?.length && !meta.seasons.includes(getSeason())) return false;
+      if (meta.weather && meta.weather !== weather) return false;
+      if(c==="day"||c==="dayOptional") return period==="day";
+      if(c==="night") return period==="night";
+      if(c==="lunar"||c==="moby"||c==="elderKelpie"||c==="reefTitan") return false;
+      if(c==="coral"&&!rod.canCoral) return false;
+      if(c==="whale") return eventActive("whaleAbundanceUntil");
+      if(c==="migration"||c==="migrationRequired") return eventActive("sharkMigrationUntil");
+      if(state.location==="shark"&&isSharkFish(f[0])&&!eventActive("sharkMigrationUntil")) return false;
+      return true;
+    }
+
     function getAvailablePool() {
-      const rod=currentRod(), period=getPeriod(), weather=currentWeatherName();
+      const rod=currentRod(), weather=currentWeatherName();
       let source;
       if(weather==="Tsunami") source=allFishPool();
       else if(weather==="Flood") source=eventBestiaries.flood;
@@ -599,17 +615,7 @@ let state = loadState();
       else if(weather==="Eclipse") source=[...locations[state.location].fish,...eventBestiaries.eclipse];
       else source=locations[state.location].fish;
 
-      let pool=source.filter(f=>{
-        const c=f[4];
-        if(c==="day"||c==="dayOptional") return period==="day";
-        if(c==="night") return period==="night";
-        if(c==="lunar"||c==="moby"||c==="elderKelpie"||c==="reefTitan") return false;
-        if(c==="coral"&&!rod.canCoral) return false;
-        if(c==="whale") return eventActive("whaleAbundanceUntil");
-        if(c==="migration"||c==="migrationRequired") return eventActive("sharkMigrationUntil");
-        if(state.location==="shark"&&isSharkFish(f[0])&&!eventActive("sharkMigrationUntil")) return false;
-        return true;
-      });
+      let pool=source.filter(f=>fishConditionMet(f,false));
       if(rod.id==="electromagnetic") pool=pool.filter(f=>f[3]===true);
       return pool;
     }
@@ -617,6 +623,10 @@ let state = loadState();
     function chooseFish() {
       maybeStartSharkEvents();
       const rod=currentRod(), stats=effectiveStats(rod), period=getPeriod();
+      const secretPool=(locations[state.location]?.fish||[]).filter(f=>isSecretFish(f)&&fishConditionMet(f,true));
+      for(const secretFish of secretPool){
+        if(Math.random()<.001) return {fish:secretFish,chance:.1,secret:true};
+      }
       let pool=getAvailablePool();
       if(!pool.length){ addLog("Nothing can be hooked under the current conditions.","warning"); return null; }
       const lunarEligible=state.location==="aurora"&&period==="night"&&rod.id!=="electromagnetic";
