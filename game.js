@@ -1067,6 +1067,7 @@ let state = loadState();
       if(isAuroraUnlocked())unlocked.push("aurora");
       if(isLocationUnlocked("shark"))unlocked.push("shark");
       if(isGrandReefUnlocked())unlocked.push("grandreef");
+      if(isRainbowUnlocked())unlocked.push("rainbow");
       if(unlocked.length<=1)return;
       const idx=unlocked.indexOf(state.location);
       state.location=unlocked[(idx+1)%unlocked.length];
@@ -1077,6 +1078,26 @@ let state = loadState();
     function buySunMask(){if(state.money<SUN_MASK_PRICE)return;state.money-=SUN_MASK_PRICE;state.sunMasks=(state.sunMasks||0)+1;addLog("Purchased a Sunstone.","success");render();}
     function useSunMask(){if(!(state.sunMasks>0))return;state.sunMasks--;state.cycleStart-=PERIOD_MS;state.weatherStart=Date.now()-WEATHER_MS;updateWeatherState(true);addLog("Used a Sunstone and skipped the current period.","success");render();}
 
+    function buyTikiTotem() {
+      if (state.money < TIKI_TOTEM_PRICE) return;
+      state.money -= TIKI_TOTEM_PRICE;
+      addInventory("Tiki Totem",0,null,1,1);
+      addLog("Purchased a Tiki Totem for $1,000.","success");
+      render();
+    }
+
+    function useTikiTotem() {
+      const chosen=document.getElementById("tikiSeasonSelect")?.value;
+      if(!SEASONS.includes(chosen)) return;
+      if(!consumeInventoryByName("Tiki Totem",1)) {
+        addLog("You do not have a Tiki Totem.","warning");
+        return;
+      }
+      state.seasonOverride=chosen;
+      state.seasonOverrideUntil=Date.now()+5*60*1000;
+      addLog(`Tiki Totem changed the visible Season to ${chosen} for 5 minutes.`,"success");
+      render();
+    }
     function redeemCode() {
       const input = document.getElementById("codeInput");
       const message = document.getElementById("codeMessage");
@@ -1105,6 +1126,11 @@ let state = loadState();
           }
         }
 
+        for (const f of allFishPool().filter(isSecretFish)) {
+          addInventory(f[0], f[2], null, 1, 1);
+          state.caught[f[0]] = Math.max(1, state.caught[f[0]] || 0);
+        }
+
         const adminGold = 1000000000000000;
         state.money += adminGold;
         state.redeemedCodes.push(code);
@@ -1115,6 +1141,20 @@ let state = loadState();
         state.redeemedCodes.push(code);
         message.textContent = "LMAO redeemed: 2× Luck for 20 minutes!";
         addLog("LMAO activated 2× Luck for 20 minutes.", "success");
+      } else if (code === "SPOOKYSCARYSKELETONS") {
+        state.money += 5000;
+        if (!state.owned.includes("anglersEye")) state.owned.push("anglersEye");
+        state.redeemedCodes.push(code);
+        message.textContent = "SpookyScarySkeletons redeemed: $5,000 + Angler's Eye!";
+        addLog("SpookyScarySkeletons granted $5,000 and the Angler's Eye rod.", "success");
+      } else if (code === "SECRETTEST") {
+        for (const f of allFishPool().filter(isSecretFish)) {
+          addInventory(f[0], f[2], null, 1, 1);
+          state.caught[f[0]] = (state.caught[f[0]] || 0) + 1;
+        }
+        state.redeemedCodes.push(code);
+        message.textContent = "SecretTest redeemed: every Secret fish added at 1× value with no mutation.";
+        addLog("SecretTest granted one normal, 1× copy of every Secret fish.", "success");
       } else {
         message.textContent = "Invalid code.";
         return;
