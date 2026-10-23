@@ -11,7 +11,31 @@ let state = loadState();
     let bestiarySearch = "";
     let bestiarySort = "default";
     let activeScreen = state.activeScreen || "fishing";
+    const SEASONS = ["Spring","Summer","Autumn","Winter"];
+    const SECRET_NAMES = new Set(["Cosmic Pearl","The Sun Idol","The Moon Idol"]);
+    const TIKI_TOTEM_PRICE = 1000;
+    state.favoriteFish = Array.isArray(state.favoriteFish) ? state.favoriteFish : [];
 
+    function fishMeta(fish) { return (fish && fish[5] && typeof fish[5] === "object") ? fish[5] : {}; }
+    function getSeason() {
+      if ((state.seasonOverrideUntil || 0) > Date.now() && SEASONS.includes(state.seasonOverride)) return state.seasonOverride;
+      if ((state.seasonOverrideUntil || 0) <= Date.now()) { state.seasonOverride=""; state.seasonOverrideUntil=0; }
+      const phase = Math.floor((Date.now() - state.seasonStart) / SEASON_MS);
+      return SEASONS[((phase % SEASONS.length) + SEASONS.length) % SEASONS.length];
+    }
+    function getSeasonRemaining() {
+      if ((state.seasonOverrideUntil || 0) > Date.now()) return state.seasonOverrideUntil - Date.now();
+      const elapsed = ((Date.now() - state.seasonStart) % SEASON_MS + SEASON_MS) % SEASON_MS;
+      return SEASON_MS - elapsed;
+    }
+    function isSecretFish(fish) { return !!fish && (fish[1] === "Secret" || SECRET_NAMES.has(fish[0])); }
+    function isFavoriteFish(name) { return state.favoriteFish.includes(name); }
+    function setFavoriteFish(name, favorite) {
+      const set = new Set(state.favoriteFish);
+      if (favorite) set.add(name); else set.delete(name);
+      state.favoriteFish = [...set];
+      saveState();
+    }
 
     function getPeriod() {
       const phase = Math.floor((Date.now() - state.cycleStart) / PERIOD_MS);
@@ -52,6 +76,7 @@ let state = loadState();
     function currentWeatherName() { return state.weather || state.currentWeather || "Clear"; }
     function isAuroraUnlocked() { return locationCompletion("gravitas").pct >= 50; }
     function isGrandReefUnlocked() { return locationCompletion("shark").pct >= 50; }
+    function isRainbowUnlocked() { return locationCompletion("grandreef").pct >= 50; }
     function eventCompletion(id) {
       const list = eventBestiaries[id] || [];
       const required = list.filter(f => !["optional","elderKelpie"].includes(f[4]));
@@ -102,6 +127,7 @@ let state = loadState();
 
     function requiredFish(locationId) {
       return locations[locationId].fish.filter(f => {
+        if (isSecretFish(f) || fishMeta(f).optional) return false;
         if (locationId === "shark") return !["moby","migration"].includes(f[4]);
         return !["optional","dayOptional","lunar"].includes(f[4]);
       });
@@ -143,6 +169,7 @@ let state = loadState();
       if (id === "aurora") return locationCompletion("gravitas").pct >= 50;
       if (id === "shark") return locationCompletion("aurora").pct >= 50;
       if (id === "grandreef") return locationCompletion("shark").pct >= 50;
+      if (id === "rainbow") return isRainbowUnlocked();
       return false;
     }
 
