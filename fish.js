@@ -1,6 +1,6 @@
 // Fish, rarities, descriptions, and locations
 
-const rarityOrder = ["Common", "Uncommon", "Rare", "Mythical", "Legendary", "Unknown", "Extinct"];
+const rarityOrder = ["Common", "Uncommon", "Rare", "Mythical", "Legendary", "Unknown", "Extinct", "Secret"];
 
 const rarityWeights = {
       Common: 58,
@@ -19,7 +19,8 @@ const shakeCounts = {
       Mythical: 35,
       Legendary: 30,
       Unknown: 25,
-      Extinct: 20
+      Extinct: 20,
+      Secret: 20
     };
 
 const fishDescriptions = {
@@ -197,3 +198,83 @@ const locations = {
       },
 
     };
+Object.assign(fishDescriptions, {
+  "Rusty Nail":"A bent, rust-covered nail pulled from the colorful pond floor.",
+  "Mysterious Tentacle":"Nobody knows what the rest of it is attached to.",
+  "Heatfish":"A warm-bodied fish that thrives during Rainbow Pond summers.",
+  "Snowfish":"An icy little fish that only surfaces during winter.",
+  "Map":"A waterlogged map whose markings hint at places beyond ordinary fishing.",
+  "Bloomfish":"A spring fish whose fins open like petals.",
+  "Fallfish":"An autumn-colored fish that drifts with fallen leaves.",
+  "White Crab":"A pale crab sometimes discovered while adventuring.",
+  "Spotted Seahorse":"A tiny seahorse covered in bright pond-spots.",
+  "Damp Lamp":"A lamp that absolutely should not still be damp inside.",
+  "Sunfish":"A radiant pond fish that seems brighter in daylight.",
+  "Moonfish":"A cool-toned fish patterned like a crescent moon.",
+  "Sunken Surfboard":"A battered board reclaimed by the pond.",
+  "Poisonous Starfish":"A dangerously colorful starfish with toxic spines.",
+  "Harpoon":"An old harpoon recovered as an item catch.",
+  "Fragrant Bass":"A spring bass that somehow smells like flowers.",
+  "Spikefish":"A prickly fish that makes handling the catch difficult.",
+  "Totemfish":"A strange fish marked like a carved seasonal totem.",
+  "Flarice Eel":"An eel that alternates between burning-hot and freezing-cold energy.",
+  "Dogfish":"A loyal-looking fish with a surprisingly aggressive bite.",
+  "Viperfish":"A long-fanged predator lurking beneath Rainbow Pond.",
+  "Dragonfish":"A nocturnal winter predator that glows in dark water.",
+  "Black Pearl":"A rare autumn pearl hidden only beneath clear water.",
+  "Gumball Machine":"A somehow-functional machine dragged up by a fishing line.",
+  "Fungus Alligator":"A spring alligator covered in suspicious mushroom growth.",
+  "Beach Ball":"A summer toy that fights the line more than expected.",
+  "Tiki Totem":"A seasonal totem capable of temporarily changing the current season.",
+  "Luminescent Pearl":"A glowing spring pearl revealed by rainy weather.",
+  "Rainbow Runningfish":"A bizarre runner-like fish visible only beneath Rainbow weather.",
+  "Aurorus Anglerfish":"An anglerfish illuminated by rare aurora skies.",
+  "Galactic Gazer":"An ancient winter creature that watches the stars during Starstorms.",
+  "Cosmic Pearl":"A Secret pearl untouched by Luck. It appears at a fixed one-in-one-thousand chance.",
+  "The Sun Idol":"A nearly worthless Secret idol that watches the pond by day.",
+  "The Moon Idol":"A matching Secret idol hidden within Aurora Pond at night."
+});
+
+locations.aurora.fish.push(["The Moon Idol","Secret",1,false,"secret",{period:"night",optional:true,secret:true}]);
+
+locations.rainbow = {
+  name:"Rainbow Pond",
+  desc:"A radiant seasonal pond where weather, time, and the four seasons reshape what can be caught.",
+  fish:[
+    ["Surgeonfish","Common",18],
+    ["Rusty Nail","Common",2,true,"",{adventure:true}],
+    ["Mysterious Tentacle","Common",10,true,"",{adventure:true}],
+    ["Heatfish","Common",20,false,"",{seasons:["Summer"]}],
+    ["Snowfish","Common",30,false,"",{seasons:["Winter"]}],
+    ["Map","Common",0,true],
+    ["Bloomfish","Uncommon",50,false,"",{seasons:["Spring"]}],
+    ["Fallfish","Uncommon",70,false,"",{seasons:["Autumn"]}],
+    ["White Crab","Uncommon",63,false,"",{adventure:true}],
+    ["Spotted Seahorse","Uncommon",66],
+    ["Damp Lamp","Uncommon",30,true,"",{adventure:true}],
+    ["Sunfish","Rare",100],
+    ["Moonfish","Rare",150],
+    ["Sunken Surfboard","Rare",175,true,"",{adventure:true}],
+    ["Poisonous Starfish","Rare",135],
+    ["Harpoon","Rare",90,true,"",{adventure:true}],
+    ["Fragrant Bass","Rare",147,false,"",{seasons:["Spring"]}],
+    ["Spikefish","Rare",150],
+    ["Totemfish","Mythical",300,false,"",{seasons:["Spring","Autumn"]}],
+    ["Flarice Eel","Mythical",777,false,"",{seasons:["Summer","Winter"]}],
+    ["Dogfish","Mythical",500],
+    ["Viperfish","Mythical",675],
+    ["Dragonfish","Mythical",1000,false,"",{period:"night",seasons:["Winter"]}],
+    ["Black Pearl","Mythical",1888,false,"",{weather:"Clear",seasons:["Autumn"],optional:true,adventure:true}],
+    ["Gumball Machine","Legendary",1500,true],
+    ["Fungus Alligator","Legendary",1475,false,"",{seasons:["Spring"]}],
+    ["Beach Ball","Legendary",300,true,"",{seasons:["Summer"]}],
+    ["Tiki Totem","Legendary",0,true,"",{period:"day",weather:"Eclipse",seasons:["Summer"],optional:true,adventure:true}],
+    ["Luminescent Pearl","Legendary",2666,false,"",{weather:"Rainy",seasons:["Spring"],optional:true,adventure:true}],
+    ["Rainbow Runningfish","Unknown",2222,false,"",{weather:"Rainbow",optional:true}],
+    ["Aurorus Anglerfish","Unknown",2222,false,"",{weather:"Aurora",optional:true}],
+    ["Galactic Gazer","Extinct",8888,false,"",{weather:"Starstorm",seasons:["Winter"],optional:true}],
+    ["Cosmic Pearl","Secret",20000,false,"secret",{period:"night",optional:true,adventure:true,secret:true}],
+    ["The Sun Idol","Secret",1,false,"secret",{period:"day",optional:true,secret:true}]
+  ]
+};
+
