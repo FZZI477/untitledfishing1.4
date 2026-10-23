@@ -275,7 +275,9 @@ let state = loadState();
         hero.classList.toggle("aurora", state.location === "aurora");
         hero.classList.toggle("shark", state.location === "shark");
         hero.classList.toggle("reef", state.location === "grandreef");
+        hero.classList.toggle("rainbow", state.location === "rainbow");
       }
+      document.body.dataset.season = slugify(getSeason());
     }
 
     function setScreen(screen) {
@@ -293,7 +295,7 @@ let state = loadState();
       const weatherName = currentWeatherName();
       const waitSeconds = Math.max(0, (100 - stats.haste) * .075);
       const sceneKicker = document.getElementById('sceneKicker');
-      if (sceneKicker) sceneKicker.textContent = `${locations[state.location].name} • ${getPeriod() === 'day' ? 'Day' : 'Night'} • ${weatherName}`;
+      if (sceneKicker) sceneKicker.textContent = `${locations[state.location].name} • ${getSeason()} • ${getPeriod() === 'day' ? 'Day' : 'Night'} • ${weatherName}`;
       const castEta = document.getElementById('castEtaLabel');
       if (castEta) castEta.textContent = waitSeconds <= 0 ? 'Lure ETA: instant bite' : `Lure ETA: ${waitSeconds.toFixed(2)}s`;
       const bagName = document.getElementById('bagEquippedName');
@@ -460,7 +462,8 @@ let state = loadState();
         { id:"loc:gravitas", label:"Gravitas Waterfall", location:"gravitas" },
         { id:"loc:aurora", label:"Aurora Pond", location:"aurora" },
         { id:"loc:shark", label:"Shark Shores", location:"shark" },
-        { id:"loc:grandreef", label:"The Grand Reef", location:"grandreef" }
+        { id:"loc:grandreef", label:"The Grand Reef", location:"grandreef" },
+        { id:"loc:rainbow", label:"Rainbow Pond", location:"rainbow" }
       ];
       const eventFilters = [
         { id:"event:sharkMigration", label:"Shark Migration", entries:locations.shark.fish.filter(f=>isSharkFish(f[0])||f[4]==="migration"||f[4]==="migrationRequired") },
@@ -473,14 +476,14 @@ let state = loadState();
         { id:"weather:drought", label:"Drought", eventId:"drought" }
       ];
       const allUnique=[]; const seen=new Set();
-      const addUnique=entries=>{for(const f of entries){if(!seen.has(f[0])){seen.add(f[0]);allUnique.push(f);}}};
+      const addUnique=entries=>{for(const f of entries){if(isSecretFish(f))continue;if(!seen.has(f[0])){seen.add(f[0]);allUnique.push(f);}}};
       Object.values(locations).forEach(loc=>addUnique(loc.fish));
       Object.values(eventBestiaries).forEach(list=>addUnique(list));
 
       let title="All Fish", subtitle="A record of every creature beneath the waves.", entries=allUnique, completionMode="all";
       if(bestiaryFilter.startsWith("loc:")){
         const id=bestiaryFilter.slice(4);
-        if(locations[id]){title=locations[id].name;subtitle=locations[id].desc;entries=locations[id].fish;completionMode=`location:${id}`;}
+        if(locations[id]){title=locations[id].name;subtitle=locations[id].desc;entries=locations[id].fish.filter(f=>!isSecretFish(f));completionMode=`location:${id}`;}
       } else if(bestiaryFilter.startsWith("event:")){
         const filter=eventFilters.find(x=>x.id===bestiaryFilter);
         if(filter){title=filter.label;subtitle=filter.id==="event:sharkMigration"?"Sharks and ancient predators linked to the migration.":"Blue Whale encounters and the rare Moby replacement.";entries=filter.entries;completionMode="collection";}
@@ -518,6 +521,13 @@ let state = loadState();
         const thumb = getFishSprite(name, rarity, item, condition);
         let conditionText="";
         if(condition==="day")conditionText="Day only"; if(condition==="night")conditionText="Night only"; if(condition==="dayOptional")conditionText="Day only · Optional"; if(condition==="lunar")conditionText="10% Mosslurker replacement"; if(condition==="optional")conditionText="Optional"; if(condition==="whale")conditionText="Whale Migration"; if(condition==="moby")conditionText="10% Blue Whale replacement"; if(condition==="migration")conditionText="Shark Migration"; if(condition==="migrationRequired")conditionText="Shark Migration · Required"; if(condition==="coral")conditionText="Hides in Coral"; if(condition==="reefTitan")conditionText="10% Reef Titan replacement"; if(condition==="required")conditionText="Required"; if(condition==="elderKelpie")conditionText="10% Kelpie replacement";
+        const meta=fishMeta(f), parts=[];
+        if(meta.period) parts.push(meta.period[0].toUpperCase()+meta.period.slice(1)+" only");
+        if(meta.seasons?.length) parts.push(meta.seasons.join(" / ")+" only");
+        if(meta.weather) parts.push(meta.weather+" weather");
+        if(meta.optional) parts.push("Optional");
+        if(meta.adventure) parts.push("Adventure");
+        if(parts.length) conditionText=parts.join(" · ");
         return `<article class="bestiary-list-card ${caught?"caught":"uncaught"}"><div class="bestiary-thumb ${(!caught&&secret)?'locked':''}"><img src="${thumb}" alt="${displayName}"></div><div class="bestiary-copy"><div class="bestiary-card-top"><div><strong>${displayName}</strong></div><span class="badge ${rarity}">${rarity}</span></div><p>${desc}</p><div class="bestiary-meta"><span>${caught?`Caught: ${count}`:"Undiscovered"}</span><span>${caught||!secret?`Value: ${price}g`:"Value ???"}</span>${conditionText?`<span>${conditionText}</span>`:""}${item?`<span>Item Catch</span>`:""}</div></div></article>`;
       }).join("");
 
