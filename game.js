@@ -726,7 +726,9 @@ let state = loadState();
         coralCounter:0,
         durationBonus:0,
         ended:false,
-        timers:[]
+        timers:[],
+        melodyHits:0,
+        pauseUntil:0
       };
 
       document.getElementById("miniFish").textContent = `${fish[1]} bite — ${fish[0]}`;
@@ -739,34 +741,81 @@ let state = loadState();
       buildMiniDecor(fish);
       document.getElementById("minigameModal").classList.add("active");
 
-      const interval = Math.max(260, 650 - Math.min(250, effectiveStats(rod).haste));
+      const interval=Math.max(260,650-Math.min(250,effectiveStats(rod).haste));
       spawnShake();
-      const timer = setInterval(() => {
-        if (!activeMini || activeMini.ended) return clearInterval(timer);
-        if (activeMini.spawned >= activeMini.total || activeMini.hits >= 20) {
-          clearInterval(timer);
-          const finalWait = 1600 + Math.max(0,effectiveStats().steady)*60*currentWeather().life + (rod.id === "harpoon" && isSharkFish(fish[0]) ? 1000 : 0);
-          const finishTimer = setTimeout(finishMinigame, finalWait);
-          activeMini.timers.push(finishTimer);
+      const spawnTick=()=>{
+        if(!activeMini||activeMini.ended)return;
+        if(activeMini.spawned>=activeMini.total||activeMini.hits>=20){
+          const finalWait=1600+Math.max(0,effectiveStats().steady)*60*currentWeather().life;
+          activeMini.timers.push(setTimeout(finishMinigame,finalWait));
           return;
         }
         spawnShake();
-      }, interval);
-      activeMini.timers.push(timer);
+        const delay=Math.max(120,interval/Math.pow(1.05,rod.id==="melody16"?(activeMini.melodyHits||0):0));
+        activeMini.timers.push(setTimeout(spawnTick,delay));
+      };
+      activeMini.timers.push(setTimeout(spawnTick,interval));
 
       if(rod.id==="sunslasher"){
+        const level=state.sunslasherLevel||1;
+        const chance=level===1?.10:level===2?.33:level===3?.50:.75;
+        const seconds=level>=4?(level===5?2000:3000):1000;
+        const progress=level===3?1:level>=4?5:2;
         const slashTimer=setInterval(()=>{
           if(!activeMini||activeMini.ended)return clearInterval(slashTimer);
-          if(Math.random()<.20){
-            activeMini.hits=Math.min(20,activeMini.hits+4);
+          if(Math.random()<chance){
+            activeMini.hits=Math.min(20,activeMini.hits+progress);
             document.getElementById("catchProgress").style.width=`${Math.min(100,activeMini.hits*5)}%`;
-            document.querySelectorAll(".shake-target").forEach(x=>x.classList.add("still"));
-            setTimeout(()=>document.querySelectorAll(".shake-target").forEach(x=>x.classList.remove("still")),2000);
+            if(level>=4){
+              document.querySelectorAll(".shake-target").forEach(x=>{x.classList.add("still");if(x.extendLife)x.extendLife(2);});
+            }
             if(activeMini.hits>=20)finishMinigame();
           }
-        },3000);
+        },seconds);
         activeMini.timers.push(slashTimer);
+        if(level===3)for(let i=0;i<3;i++)spawnBonusTarget("extra",1000,1);
       }
+      if(rod.id==="neon16"){
+        const t=setInterval(()=>{
+          if(!activeMini||activeMini.ended)return clearInterval(t);
+          if(Math.random()<.22){
+            activeMini.hits=Math.min(20,activeMini.hits+6.6);
+            document.getElementById("catchProgress").style.width=`${Math.min(100,activeMini.hits*5)}%`;
+            if(activeMini.hits>=20)finishMinigame();
+          }
+        },2000);activeMini.timers.push(t);
+      }
+      if(rod.id==="melody16"){
+        const t=setInterval(()=>{
+          if(!activeMini||activeMini.ended)return clearInterval(t);
+          if(Math.random()<.20)spawnBonusTarget("musical",500,20);
+        },3000);activeMini.timers.push(t);
+      }
+      if(rod.id==="keeper16"){
+        const t=setInterval(()=>{
+          if(!activeMini||activeMini.ended)return clearInterval(t);
+          activeMini.pauseUntil=Date.now()+1000;
+          document.querySelectorAll(".shake-target").forEach(x=>{x.classList.add("still");if(x.extendLifeMs)x.extendLifeMs(1000);});
+        },3000);activeMini.timers.push(t);
+      }
+    }
+
+    function spawnBonusTarget(kind,duration,progressHits) {
+      if(!activeMini||activeMini.ended)return;
+      const mini=activeMini,box=document.getElementById("minigameBox"),btn=document.createElement("button");
+      btn.className="shake-target "+(kind==="musical"?"musical-note":"extra-shake");
+      btn.textContent=kind==="musical"?"♫":"★";
+      btn.setAttribute("aria-label",kind==="musical"?"Catch musical note":"Bonus shake");
+      btn.style.left=(20+Math.random()*Math.max(0,box.clientWidth-100))+"px";
+      btn.style.top=(85+Math.random()*Math.max(0,box.clientHeight-175))+"px";
+      btn.onclick=()=>{
+        if(!activeMini||activeMini!==mini||mini.ended)return;
+        btn.remove();mini.hits=Math.min(20,mini.hits+progressHits);
+        document.getElementById("catchProgress").style.width=Math.min(100,mini.hits*5)+"%";
+        if(mini.hits>=20)finishMinigame();
+      };
+      box.appendChild(btn);
+      mini.timers.push(setTimeout(()=>btn.remove(),duration));
     }
 
     function spawnShake() {
@@ -802,6 +851,8 @@ let state = loadState();
         clicked = true;
         let gainHits=isCoralShake?4:1;
         if(currentRod().id==="coralguard"&&Math.random()<.40)gainHits*=3;
+        if(currentRod().id==="angler16")gainHits*=1.1;
+        if(currentRod().id==="melody16")activeMini.melodyHits++;
         activeMini.hits+=gainHits;
         btn.remove();
         const pct = Math.min(100, activeMini.hits * 5);
@@ -811,7 +862,15 @@ let state = loadState();
       };
 
       box.appendChild(btn);
-      const timeout = setTimeout(() => {
+      let expiresAt=Date.now()+life;
+      btn.extendLife=(extraMultiplier)=>{expiresAt+=Math.max(0,expiresAt-Date.now())*extraMultiplier;};
+      btn.extendLifeMs=(milliseconds)=>{expiresAt+=milliseconds;};
+      const expire=()=>{
+        if(!clicked&&activeMini&&!activeMini.ended && (Date.now()<expiresAt || Date.now()<(activeMini.pauseUntil||0))){
+          const retry=setTimeout(expire,Math.max(20,Math.min(2000,Math.max(expiresAt,activeMini.pauseUntil||0)-Date.now())));
+          activeMini.timers.push(retry);
+          return;
+        }
         if (!clicked && activeMini && !activeMini.ended) {
           activeMini.misses++;
           if (isCoralShake) {
@@ -828,7 +887,8 @@ let state = loadState();
           }
         }
         btn.remove();
-      }, life);
+      };
+      const timeout=setTimeout(expire,life);
       activeMini.timers.push(timeout);
     }
 
