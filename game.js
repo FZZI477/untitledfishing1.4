@@ -587,7 +587,7 @@ let state = loadState();
         const total = data.count * data.unitValue;
         const sprite = getFishSprite(data.displayName, "Common", /mutation/i.test(data.mutation||"") && /skele|phantom/.test((data.mutation||"").toLowerCase()));
         const favorite = isFavoriteFish(data.displayName);
-        return `<div class="inventory-row inventory-card"><button class="favorite-star ${favorite?"active":""}" title="${favorite?"Unfavorite":"Favorite"} ${data.displayName}" onclick="toggleFavoriteFish('${encodeURIComponent(data.displayName)}')">${favorite?"★":"☆"}</button><img src="${sprite}" alt="${data.displayName}"><div class="inventory-details"><strong>${data.displayName}</strong><div class="small">${data.count} × ${formatMoney(data.unitValue)}${data.mutation ? ` · ${data.mutation}` : ""}</div></div><div class="inventory-actions"><button class="pixel-button" onclick="sellInventoryKey('${encodeURIComponent(key)}')">Sell ${formatMoney(total)}</button></div></div>`;
+        return `<div class="inventory-row inventory-card"><button class="favorite-star ${favorite?"active":""}" title="${favorite?"Unfavorite":"Favorite"} ${data.displayName}" onclick="toggleFavoriteFish('${encodeURIComponent(data.displayName)}')">${favorite?"★":"☆"}</button><img src="${sprite}" alt="${data.displayName}"><div class="inventory-details"><strong>${data.displayName}</strong><div class="small">${data.count} × ${formatMoney(data.unitValue)}${data.mutation ? ` · ${data.mutation}` : ""}${data.weightFactor && data.weightFactor!==1?` · ${data.weightFactor}× weight`:""}</div></div><div class="inventory-actions"><button class="pixel-button" onclick="sellInventoryKey('${encodeURIComponent(key)}')">Sell ${formatMoney(total)}</button></div></div>`;
       }).join("");
     }
 
@@ -905,11 +905,31 @@ let state = loadState();
       if(rod.id==="coral"&&Math.random()<.10){mutation="Coral Mutation";multiplier=1.44;}
       if(rod.id==="coralguard"){mutation=result.perfect?"Sacred Mutation":"Coral Mutation";multiplier=result.perfect?4:1.44;}
       if(rod.id==="sunslasher"){
-        const sr=Math.random();
-        if(sr<.08){mutation="Freshfried Mutation";multiplier=4.1;}
-        else if(sr<.30){mutation="Heated Mutation";multiplier=2.2;}
-        else if(sr<.80){mutation="Tanned Mutation";multiplier=2;}
+        const lvl=state.sunslasherLevel||1, sr=Math.random();
+        if(lvl===2 && sr<.50){mutation="Tanned Mutation";multiplier=2;}
+        if(lvl===3){mutation="Tanned Mutation";multiplier=2;}
+        if(lvl>=4){
+          if(lvl===5 && sr<.10){mutation="Freshfried Mutation";multiplier=4.1;}
+          else {
+            const roll=Math.random();
+            if(roll<.50){mutation="Tanned Mutation";multiplier=2;}
+            else if(roll<.75){mutation="Heated Mutation";multiplier=2.2;}
+            else if(getPeriod()==="night"){mutation="Lunar Mutation";multiplier=2.22;}
+          }
+        }
       }
+      if(rod.id==="sun16" && getPeriod()==="day" && Math.random()<.33){mutation="Solar Mutation";multiplier=3;}
+      if(rod.id==="moon16"){
+        if(getPeriod()==="night"){mutation="Lunar Mutation";multiplier=2.22;}
+        else if(Math.random()<.05){mutation="Eclipse Mutation";multiplier=4;}
+      }
+      if(rod.id==="neon16"){
+        const neonRoll=Math.random();
+        if(neonRoll<.22){mutation="Luminescent Mutation";multiplier=2.5;}
+        else if(neonRoll<.44){mutation="Drippy Mutation";multiplier=2;}
+      }
+      if(rod.id==="melody16" && Math.random()<(result.perfect?.95:.50)){mutation="Melodic Mutation";multiplier=3;}
+      if(rod.id==="keeper16"){mutation="Prestigious Mutation";multiplier=3.3;}
 
       if (rod.id === "gravidoomer") {
         const gravRoll = Math.random();
@@ -942,6 +962,7 @@ let state = loadState();
       }
 
       if (rod.id === "fortuneous" && Math.random() < .10) extraCopies++;
+      if (rod.id === "sunslasher" && (state.sunslasherLevel||1)>=4 && Math.random()<.15)extraCopies++;
 
       if (rod.id === "bellona" && result.perfect) {
         extraCopies++;
@@ -950,13 +971,17 @@ let state = loadState();
       }
 
       const weatherValue = weather.value || 1;
-      addInventory(name, basePrice, mutation, multiplier * weatherValue, 1);
+      let weightFactor=1;
+      if(rod.id==="sun16"&&getPeriod()==="night")weightFactor=.9;
+      if(rod.id==="moon16")weightFactor=getPeriod()==="night"?1.2:.5;
+      if(rod.id==="melody16")weightFactor=1.15;
+      addInventory(name, basePrice, mutation, multiplier * weatherValue, 1, weightFactor);
       if (extraCopies) {
         if (extraMutation) {
-          addInventory(name, basePrice, extraMutation, extraMultiplier * weatherValue, 1);
-          if (extraCopies > 1) addInventory(name, basePrice, mutation, multiplier * weatherValue, extraCopies - 1);
+          addInventory(name, basePrice, extraMutation, extraMultiplier * weatherValue, 1,weightFactor);
+          if (extraCopies > 1) addInventory(name, basePrice, mutation, multiplier * weatherValue, extraCopies - 1,weightFactor);
         } else {
-          addInventory(name, basePrice, mutation, multiplier * weatherValue, extraCopies);
+          addInventory(name, basePrice, mutation, multiplier * weatherValue, extraCopies,weightFactor);
         }
       }
 
@@ -1003,6 +1028,7 @@ let state = loadState();
       if (mysteryCount) details += ` · ${mysteryCount} mystery companion${mysteryCount>1?"s":""}`;
       if (result.trapped) details += " · instantly trapped";
       if (weatherValue !== 1) details += ` · ${weatherName} value bonus`;
+      if(weightFactor!==1)details+=` · ${weightFactor}× weight`;
       const finalUnitValue = Math.round(basePrice * multiplier * weatherValue);
       showCatchResult({
         name, rarity, basePrice, mutation, multiplier, weatherValue, finalUnitValue,
@@ -1013,10 +1039,10 @@ let state = loadState();
       afterCatchAttempt();
     }
 
-    function addInventory(name, basePrice, mutation, multiplier, count) {
-      const key = `${name}__${mutation || "Normal"}`;
+    function addInventory(name, basePrice, mutation, multiplier, count, weightFactor=1) {
+      const key = `${name}__${mutation || "Normal"}${weightFactor===1?"":"__w"+weightFactor}`;
       if (!state.inventory[key]) {
-        state.inventory[key] = { displayName:name, mutation:mutation, unitValue:Math.round(basePrice * multiplier), count:0 };
+        state.inventory[key] = { displayName:name, mutation:mutation, unitValue:Math.round(basePrice * multiplier), weightFactor, count:0 };
       }
       state.inventory[key].count += count;
       if (SECRET_NAMES.has(name)) setFavoriteFish(name,true);
