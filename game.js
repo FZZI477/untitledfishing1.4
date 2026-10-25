@@ -37,7 +37,7 @@ let state = loadState();
       saveState();
     }
 
-    const p2=createPart2({
+    const p2=window.createPart2({
       state:()=>state,locations,events:eventBestiaries,
       fish:name=>allFishPool().find(f=>f[0]===name),
       allFish:()=>allFishPool(),
