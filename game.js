@@ -315,7 +315,7 @@ let state = loadState();
       const bagName = document.getElementById('bagEquippedName');
       if (bagName) bagName.textContent = rod.name;
       const bagStats = document.getElementById('bagEquippedStats');
-      if (bagStats) bagStats.textContent = `${stats.haste.toFixed(2)} Haste • ${stats.luck.toFixed(2)} Luck • ${stats.steady.toFixed(2)} Steadiness`;
+      if (bagStats) bagStats.textContent = `${rod.id==="keeper16"?"∞":stats.haste.toFixed(2)} Haste • ${stats.luck.toFixed(2)} Luck • ${stats.steady.toFixed(2)} Steadiness`;
       const bagPassive = document.getElementById('bagEquippedPassive');
       if (bagPassive) bagPassive.textContent = rod.passive || rod.unlock || 'Simple but dependable.';
       const weatherBuff = document.getElementById('weatherBuffSummary');
@@ -327,11 +327,11 @@ let state = loadState();
     function renderRodBag() {
       const el = document.getElementById('rodBagList');
       if (!el) return;
-      const owned = rods.filter(r => state.owned.includes(r.id));
+      const owned = rods.filter(r => state.owned.includes(r.id)).map(r=>r.id==="sunslasher"?p2.sunslasherRod(r):r);
       el.innerHTML = owned.map(rod => {
         const equipped = rod.id === state.equipped;
         const sprite = spriteAssets.bag;
-        return `<div class="bag-row"><div class="bag-row-main"><img src="${sprite}" alt="Rod bag icon"><div><strong>${rod.name}</strong><div class="small">${rod.haste} Haste • ${rod.luck} Luck • ${rod.steady} Steadiness</div><div class="small">${rod.passive || 'No passive.'}</div></div></div><button class="pixel-button" ${equipped ? 'disabled' : ''} onclick="equipRod('${rod.id}')">${equipped ? 'Equipped' : 'Equip'}</button></div>`;
+        return `<div class="bag-row"><div class="bag-row-main"><img src="${sprite}" alt="Rod bag icon"><div><strong>${rod.name}</strong><div class="small">${rod.id==="keeper16"?"∞":rod.haste} Haste • ${rod.luck} Luck • ${rod.steady} Steadiness</div><div class="small">${rod.passive || 'No passive.'}</div></div></div><button class="pixel-button" ${equipped ? 'disabled' : ''} onclick="equipRod('${rod.id}')">${equipped ? 'Equipped' : 'Equip'}</button></div>`;
       }).join('') || '<p class="small">No rods owned.</p>';
     }
 
@@ -411,7 +411,7 @@ let state = loadState();
 
       const stats = effectiveStats();
       document.getElementById("activeStats").innerHTML =
-        `<strong>Haste:</strong> ${stats.haste.toFixed(2)} &nbsp; <strong>Luck:</strong> ${stats.luck.toFixed(2)} &nbsp; <strong>Steadiness:</strong> ${stats.steady.toFixed(2)}`;
+        `<strong>Haste:</strong> ${currentRod().id==="keeper16"?"∞":stats.haste.toFixed(2)} &nbsp; <strong>Luck:</strong> ${stats.luck.toFixed(2)} &nbsp; <strong>Steadiness:</strong> ${stats.steady.toFixed(2)}`;
 
       const comp = locationCompletion(state.location);
       document.getElementById("areaProgress").style.width = `${comp.pct}%`;
@@ -468,7 +468,7 @@ let state = loadState();
         const locationMet = (!rod.shoreOnly || state.location === "shark") && (!rod.shopLocation || rod.shopLocation === state.location);
         const met = requirementMet(rod) && locationMet;
         const equipped = state.equipped === rod.id;
-        let stats = `${rod.haste} Haste · ${rod.luck} Luck · ${rod.steady} Steadiness`;
+        let stats = `${rod.id==="keeper16"?"∞":rod.haste} Haste · ${rod.luck} Luck · ${rod.steady} Steadiness`;
         if (rod.id === "splitbranch") stats += ` / Alt: -5 Haste · 88 Luck · 0 Steadiness`;
         if (rod.id === "snowflake" && owned) stats += ` · Integrity ${state.snowflakeIntegrity.toFixed(0)}%`;
         let button = "";
