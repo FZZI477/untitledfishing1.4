@@ -393,3 +393,6 @@ body[data-weather="drought"] .scene-backdrop {
   .bestiary-toolbar { flex-direction: column; align-items: stretch; }
   .toolbar-right { width: 100%; justify-content: space-between; }
 }
+
+/* Rainbow Pond Part 2 */
+.quest-card,.adventure-card{padding:14px;border:2px solid rgba(158,210,222,.25);border-radius:12px;background:rgba(14,31,45,.5);margin:10px 0;display:grid;gap:8px}.p2-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px}.p2-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.p2-tabs button.active{border-color:#edce75;color:#ffeaa0}.p2-status{color:#e1c989;font-weight:bold}.p2-detail{font-size:.88rem;opacity:.85}.musical-note{background:#f3b9e8!important;color:#351b40!important;border:2px solid white!important}.extra-shake{background:#f1cb59!important;color:#1b3540!important}

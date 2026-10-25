@@ -56,6 +56,7 @@
           <div class="footer-actions">
             <button id="openRodBagBtn2" class="pixel-button">Equip Rod</button>
             <button id="switchLocationBtn" class="pixel-button">Travel</button>
+            <button id="adventureBtn" class="pixel-button" style="display:none">🧭 Adventure</button>
           </div>
         </aside>
 
@@ -91,6 +92,8 @@
     <section id="screen-rods" class="screen-view"><div class="page-frame pixel-panel"><div id="rods"></div></div></section>
     <section id="screen-bestiary" class="screen-view"><div class="page-frame pixel-panel bestiary-frame"><div id="bestiary"></div></div></section>
     <section id="screen-inventory" class="screen-view"><div class="page-frame pixel-panel"><div id="inventory"></div></div></section>
+    <section id="screen-adventure" class="screen-view"><div class="page-frame pixel-panel"><div id="adventureContent"></div></div></section>
+    <section id="screen-quests" class="screen-view"><div class="page-frame pixel-panel"><div id="questsContent"></div></div></section>
     <section id="screen-shop" class="screen-view">
       <div class="page-frame pixel-panel">
         <div id="shop" class="tab-view active">
@@ -156,6 +159,7 @@
         <button class="launch-app" data-screen="rods"><span class="launch-icon">🪝</span><span>Rods</span></button>
         <button class="launch-app" data-screen="bestiary"><span class="launch-icon">📖</span><span>Bestiary</span></button>
         <button class="launch-app" data-screen="inventory"><span class="launch-icon">🎒</span><span>Inventory</span></button>
+        <button class="launch-app" data-screen="quests"><span class="launch-icon">🎵</span><span>Quests</span></button>
         <button class="launch-app" data-screen="shop"><span class="launch-icon">🏪</span><span>Shop</span></button>
         <button class="launch-app" data-screen="codes"><span class="launch-icon">⭐</span><span>Codes</span></button>
         <button class="launch-app" data-screen="help"><span class="launch-icon">❔</span><span>How To Play</span></button>
@@ -199,6 +203,7 @@
   <script src="mutations.js"></script>
   <script src="rods.js"></script>
   <script src="saves.js"></script>
+  <script src="part2.js"></script>
   <script src="game.js"></script>
 </body>
 </html>

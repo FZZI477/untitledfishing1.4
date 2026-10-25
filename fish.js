@@ -264,7 +264,7 @@ locations.rainbow = {
     ["Dogfish","Mythical",500],
     ["Viperfish","Mythical",675],
     ["Dragonfish","Mythical",1000,false,"",{period:"night",seasons:["Winter"]}],
-    ["Black Pearl","Mythical",1888,false,"",{weather:"Clear",seasons:["Autumn"],optional:true,adventure:true}],
+    ["Black Pearl","Mythical",1888,false,"",{weather:"Clear",seasons:["Spring","Autumn"],optional:true,adventure:true}],
     ["Gumball Machine","Legendary",1500,true],
     ["Fungus Alligator","Legendary",1475,false,"",{seasons:["Spring"]}],
     ["Beach Ball","Legendary",300,true,"",{seasons:["Summer"]}],
