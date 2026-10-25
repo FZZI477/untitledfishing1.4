@@ -16,6 +16,18 @@ let state = loadState();
     const TIKI_TOTEM_PRICE = 1000;
     state.favoriteFish = Array.isArray(state.favoriteFish) ? state.favoriteFish : [];
 
+    // SECRETADMINMAX is a permanent all-rod unlock. Also update existing saves
+    // that redeemed it before quest, adventure and upgrade rods were added.
+    function grantSecretAdminRods() {
+      state.owned = [...new Set([
+        ...(Array.isArray(state.owned) ? state.owned : []),
+        ...rods.filter(rod => rod && rod.id).map(rod => rod.id)
+      ])];
+      // SunSlasher versions are one upgradable rod rather than separate IDs.
+      state.sunslasherLevel = 5;
+    }
+    if (state.redeemedCodes?.includes("SECRETADMINMAX")) grantSecretAdminRods();
+
     function fishMeta(fish) { return (fish && fish[5] && typeof fish[5] === "object") ? fish[5] : {}; }
     function getSeason() {
       if ((state.seasonOverrideUntil || 0) > Date.now() && SEASONS.includes(state.seasonOverride)) return state.seasonOverride;
@@ -1256,11 +1268,14 @@ let state = loadState();
           state.caught[f[0]] = Math.max(1, state.caught[f[0]] || 0);
         }
 
+        // Grant every current rod, including N30N, Magnificent Deity,
+        // Rainbow Temple, and fully upgraded SunSlasher.
+        grantSecretAdminRods();
         const adminGold = 1000000000000000;
         state.money += adminGold;
         state.redeemedCodes.push(code);
-        message.textContent = "SECRETADMINMAX redeemed: 100% ALL Bestiaries + $1,000,000,000,000,000 Gold!";
-        addLog("SECRETADMINMAX completed every bestiary entry, including all optional catches, and granted $1,000,000,000,000,000 Gold.", "success");
+        message.textContent = "SECRETADMINMAX redeemed: 100% ALL Bestiaries + every rod (including Quest/Temple rods and Final SunSlasher) + $1,000,000,000,000,000 Gold!";
+        addLog("SECRETADMINMAX completed every bestiary (including optional fish), unlocked all rods and Final SunSlasher, and granted $1,000,000,000,000,000 Gold.", "success");
       } else if (code === "LMAO") {
         state.luckBoostUntil = Math.max(Date.now(), state.luckBoostUntil || 0) + 20 * 60 * 1000;
         state.redeemedCodes.push(code);
