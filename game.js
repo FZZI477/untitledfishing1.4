@@ -3,7 +3,7 @@
 let state = loadState();
     if(!locations[state.location]) state.location="gravitas";
     if(!rods.some(r=>r.id===state.equipped)) state.equipped="twig";
-    if(state.equipped==="sunslasher") state.equipped="twig";
+    // SunSlasher equipment now persists.
     state.currentWeather=state.weather||state.currentWeather||"Clear";
     let activeMini = null;
     let clockTimer = null;
@@ -37,6 +37,16 @@ let state = loadState();
       saveState();
     }
 
+    const p2=createPart2({
+      state:()=>state,locations,events:eventBestiaries,
+      fish:name=>allFishPool().find(f=>f[0]===name),
+      allFish:()=>allFishPool(),
+      addInventory:(...args)=>addInventory(...args),
+      favorite:(name,favorite)=>setFavoriteFish(name,favorite),
+      log:(...args)=>addLog(...args),
+      save:()=>saveState(),render:()=>render(),
+      startMinigame:(fish,chance)=>startMinigame(fish,chance)
+    });
     function getPeriod() {
       const phase = Math.floor((Date.now() - state.cycleStart) / PERIOD_MS);
       return phase % 2 === 0 ? "day" : "night";
@@ -89,7 +99,8 @@ let state = loadState();
     function isWhaleFish(name) { return /Whale|Moby/i.test(name); }
 
     function currentRod() {
-      return rods.find(r => r.id === state.equipped) || rods[0];
+      const rod=rods.find(r=>r.id===state.equipped)||rods[0];
+      return rod.id==="sunslasher"?p2.sunslasherRod(rod):rod;
     }
 
     function effectiveStats(rod=currentRod()) {
@@ -106,6 +117,8 @@ let state = loadState();
         stats.steady *= factor;
       }
 
+      if(rod.id==="sun16"&&getPeriod()==="day")stats={haste:100,luck:135,steady:47.5};
+      if(rod.id==="moon16"&&getPeriod()==="night")stats={haste:99,luck:150,steady:0};
       if (rod.id === "aurora") {
         if (getPeriod() === "night") {
           stats.luck *= 2;
@@ -160,6 +173,7 @@ let state = loadState();
       if (rod.requirement === "grandreefUnlocked") return isGrandReefUnlocked();
       if (rod.requirement === "grandreef25") return locationCompletion("grandreef").pct >= 25;
       if (rod.requirement === "grandreef100") return locationCompletion("grandreef").complete;
+      if (rod.requirement === "sunslasher16") return state.location==="rainbow" && locationCompletion("grandreef").complete && eventCompletion("drought").complete;
       if (rod.requirement === "eventMaster") return locationCompletion("grandreef").complete && eventCompletion("eclipse").complete && eventCompletion("flood").complete && eventCompletion("acid").complete && eventCompletion("drought").complete;
       return true;
     }
@@ -419,6 +433,10 @@ let state = loadState();
       applySceneTheme();
       renderFishingPanel();
       renderRods();
+      p2.renderAdventure();
+      p2.renderQuests();
+      const ab=document.getElementById("adventureBtn");
+      if(ab)ab.style.display=state.location==="rainbow"?"":"none";
       renderBestiary();
       renderInventory();
       renderRodBag();
@@ -431,7 +449,7 @@ let state = loadState();
 
     function renderRods() {
       const el = document.getElementById("rods");
-      const sorted = [...rods].sort((a,b) => {
+      const sorted = rods.map(r=>r.id==="sunslasher"?p2.sunslasherRod(r):r).sort((a,b) => {
         if (state.rodSort === "nameZA") return b.name.localeCompare(a.name);
         if (state.rodSort === "priceUp") return a.price - b.price || a.name.localeCompare(b.name);
         if (state.rodSort === "priceDown") return b.price - a.price || a.name.localeCompare(b.name);
@@ -454,12 +472,17 @@ let state = loadState();
         if (rod.id === "splitbranch") stats += ` / Alt: -5 Haste · 88 Luck · 0 Steadiness`;
         if (rod.id === "snowflake" && owned) stats += ` · Integrity ${state.snowflakeIntegrity.toFixed(0)}%`;
         let button = "";
-        if (rod.unavailable) button = `<button class="pixel-button" disabled>Unavailable</button>`;
+        if (rod.questLocked && !owned) button = `<button class="pixel-button" disabled>Quest / Temple Reward</button>`;
+        else if (rod.unavailable) button = `<button class="pixel-button" disabled>Unavailable</button>`;
         else if (owned) button = `<button class="pixel-button" ${equipped ? "disabled" : ""} onclick="equipRod('${rod.id}')">${equipped ? "Equipped" : "Equip"}</button>`;
         else button = `<button class="pixel-button" ${(!met || state.money < rod.price) ? "disabled" : ""} onclick="buyRod('${rod.id}')">${rod.price === 0 ? "Claim" : `Buy ${formatMoney(rod.price)}`}</button>`;
-        return `<div class="rod-card"><div class="rod-head"><div><strong>${rod.name}</strong><div class="rod-stats">${stats}</div></div>${button}</div><div class="small">${rod.passive || "No passive."}</div><div class="small">${owned ? "Owned" : rod.unlock}${!locationMet ? ` — only sold at ${rod.shoreOnly ? "Shark Shores" : locations[rod.shopLocation]?.name || "its home area"}` : (!met ? " — requirement not met" : "")}</div></div>`;
+        return `<div class="rod-card"><div class="rod-head"><div><strong>${rod.name}</strong><div class="rod-stats">${stats}</div></div>${button}</div><div class="small">${rod.questLocked&&!owned?"??? — Unlock to reveal the rod description.":(rod.passive||"No passive.")}</div><div class="small">${owned ? "Owned" : rod.unlock}${!locationMet ? ` — only sold at ${rod.shoreOnly ? "Shark Shores" : locations[rod.shopLocation]?.name || "its home area"}` : (!met ? " — requirement not met" : "")}</div></div>`;
       }).join("");
 
+      if(state.owned.includes("sunslasher") && (state.sunslasherLevel||1)<5){
+        const reqs=["","1 Black Pearl","1 Luminescent Pearl and 2 Black Pearls","3 Luminescent Pearls and 1 Tanned Megalodon","1 Cosmic Pearl"];
+        el.innerHTML+='<div class="rod-card"><strong>SunSlasher Upgrade</strong><div class="small">Next level requires: '+reqs[state.sunslasherLevel||1]+'</div><button class="pixel-button" onclick="p2Action(\'upgrade\')">Upgrade</button></div>';
+      }
       document.getElementById("rodSortSelect").addEventListener("change", event => {
         state.rodSort = event.target.value;
         saveState();
@@ -568,6 +591,7 @@ let state = loadState();
 
     function buyRod(id) {
       const rod = rods.find(r => r.id === id);
+      if(rod?.questLocked)return;
       if (!rod || state.owned.includes(id) || !requirementMet(rod) || (rod.shopLocation && rod.shopLocation !== state.location) || (rod.shoreOnly && state.location !== "shark") || state.money < rod.price) return;
       state.money -= rod.price;
       state.owned.push(id);
@@ -639,8 +663,9 @@ let state = loadState();
       maybeStartSharkEvents();
       const rod=currentRod(), stats=effectiveStats(rod), period=getPeriod();
       const secretPool=(locations[state.location]?.fish||[]).filter(f=>isSecretFish(f)&&fishConditionMet(f,true));
+      const secretRate=rod.id==="fishy16"?1/333:1/1000;
       for(const secretFish of secretPool){
-        if(Math.random()<.001) return {fish:secretFish,chance:.1,secret:true};
+        if(Math.random()<secretRate) return {fish:secretFish,chance:secretRate*100,secret:true};
       }
       let pool=getAvailablePool();
       if(!pool.length){ addLog("Nothing can be hooked under the current conditions.","warning"); return null; }
@@ -939,6 +964,7 @@ let state = loadState();
         state.eventCaught[name]=(state.eventCaught[name]||0)+1+extraCopies;
       }
       state.lastCaughtRarity=rarity;
+      p2.onCatch(name,mutation);
 
       if (eventActive("whaleAbundanceUntil")) {
         if (name === "Moby") {
@@ -1211,6 +1237,7 @@ let state = loadState();
     }
 
     document.getElementById("fishButton").addEventListener("click", castLine);
+    document.getElementById("adventureBtn").addEventListener("click",()=>{if(state.location==="rainbow")setScreen("adventure");});
     document.getElementById("switchLocationBtn").addEventListener("click", switchLocation);
     document.getElementById("sellAllBtn").addEventListener("click", sellAll);
     document.getElementById("buySunMaskBtn").addEventListener("click", buySunMask);
