@@ -16,17 +16,12 @@ let state = loadState();
     const TIKI_TOTEM_PRICE = 1000;
     state.favoriteFish = Array.isArray(state.favoriteFish) ? state.favoriteFish : [];
 
-    // SECRETADMINMAX is a permanent all-rod unlock. Also update existing saves
-    // that redeemed it before quest, adventure and upgrade rods were added.
-    function grantSecretAdminRods() {
-      state.owned = [...new Set([
-        ...(Array.isArray(state.owned) ? state.owned : []),
-        ...rods.filter(rod => rod && rod.id).map(rod => rod.id)
-      ])];
-      // SunSlasher versions are one upgradable rod rather than separate IDs.
-      state.sunslasherLevel = 5;
+    // Quest/Temple rods are unlocked by QuestRod or their normal quests.
+    function grantQuestRods() {
+      const questIds = rods.filter(rod => rod?.questLocked && rod.id).map(rod => rod.id);
+      state.owned = [...new Set([...(Array.isArray(state.owned) ? state.owned : []), ...questIds])];
+      return questIds.length;
     }
-    if (state.redeemedCodes?.includes("SECRETADMINMAX")) grantSecretAdminRods();
 
     function fishMeta(fish) { return (fish && fish[5] && typeof fish[5] === "object") ? fish[5] : {}; }
     function getSeason() {
@@ -484,11 +479,11 @@ let state = loadState();
         if (rod.id === "splitbranch") stats += ` / Alt: -5 Haste · 88 Luck · 0 Steadiness`;
         if (rod.id === "snowflake" && owned) stats += ` · Integrity ${state.snowflakeIntegrity.toFixed(0)}%`;
         let button = "";
-        if (rod.questLocked && !owned) button = `<button class="pixel-button" disabled>Quest / Temple Reward</button>`;
+        if (rod.questLocked && !owned) button = `<button class="pixel-button" disabled>Quest</button>`;
         else if (rod.unavailable) button = `<button class="pixel-button" disabled>Unavailable</button>`;
         else if (owned) button = `<button class="pixel-button" ${equipped ? "disabled" : ""} onclick="equipRod('${rod.id}')">${equipped ? "Equipped" : "Equip"}</button>`;
         else button = `<button class="pixel-button" ${(!met || state.money < rod.price) ? "disabled" : ""} onclick="buyRod('${rod.id}')">${rod.price === 0 ? "Claim" : `Buy ${formatMoney(rod.price)}`}</button>`;
-        return `<div class="rod-card"><div class="rod-head"><div><strong>${rod.name}</strong><div class="rod-stats">${stats}</div></div>${button}</div><div class="small">${rod.questLocked&&!owned?"??? — Unlock to reveal the rod description.":(rod.passive||"No passive.")}</div><div class="small">${owned ? "Owned" : rod.unlock}${!locationMet ? ` — only sold at ${rod.shoreOnly ? "Shark Shores" : locations[rod.shopLocation]?.name || "its home area"}` : (!met ? " — requirement not met" : "")}</div></div>`;
+        return `<div class="rod-card"><div class="rod-head"><div><strong>${rod.name}</strong><div class="rod-stats">${stats}</div></div>${button}</div><div class="small">${rod.questLocked&&!owned?"??? — Unlock to reveal the rod description.":(rod.passive||"No passive.")}</div><div class="small">${owned ? "Owned" : (rod.questLocked ? "Quest" : rod.unlock)}${!locationMet ? ` — only sold at ${rod.shoreOnly ? "Shark Shores" : locations[rod.shopLocation]?.name || "its home area"}` : (!met ? " — requirement not met" : "")}</div></div>`;
       }).join("");
 
       if(state.owned.includes("sunslasher") && (state.sunslasherLevel||1)<5){
@@ -1268,14 +1263,16 @@ let state = loadState();
           state.caught[f[0]] = Math.max(1, state.caught[f[0]] || 0);
         }
 
-        // Grant every current rod, including N30N, Magnificent Deity,
-        // Rainbow Temple, and fully upgraded SunSlasher.
-        grantSecretAdminRods();
         const adminGold = 1000000000000000;
         state.money += adminGold;
         state.redeemedCodes.push(code);
-        message.textContent = "SECRETADMINMAX redeemed: 100% ALL Bestiaries + every rod (including Quest/Temple rods and Final SunSlasher) + $1,000,000,000,000,000 Gold!";
-        addLog("SECRETADMINMAX completed every bestiary (including optional fish), unlocked all rods and Final SunSlasher, and granted $1,000,000,000,000,000 Gold.", "success");
+        message.textContent = "SECRETADMINMAX redeemed: 100% ALL Bestiaries + $1,000,000,000,000,000 Gold!";
+        addLog("SECRETADMINMAX completed every bestiary (including optional and Secret fish) and granted $1,000,000,000,000,000 Gold.", "success");
+      } else if (code === "QUESTROD") {
+        const granted = grantQuestRods();
+        state.redeemedCodes.push(code);
+        message.textContent = `QuestRod redeemed: unlocked all ${granted} Quest/Temple rods!`;
+        addLog("QuestRod unlocked every Quest and Temple reward rod.", "success");
       } else if (code === "LMAO") {
         state.luckBoostUntil = Math.max(Date.now(), state.luckBoostUntil || 0) + 20 * 60 * 1000;
         state.redeemedCodes.push(code);
