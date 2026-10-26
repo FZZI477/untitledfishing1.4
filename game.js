@@ -23,6 +23,33 @@ let state = loadState();
       return questIds.length;
     }
 
+    // Location-specific debug codes complete every entry in that location's
+    // true bestiary, including optional, migration, Extinct and Secret fish.
+    const TRUE_BESTIARY_CODES = Object.freeze({
+      GRAVITAS:"gravitas",
+      AURORA:"aurora",
+      SHARK:"shark",
+      REEF:"grandreef",
+      RAINBOW:"rainbow"
+    });
+
+    function grantTrueLocationBestiary(locationId) {
+      const location = locations[locationId];
+      if (!location || !Array.isArray(location.fish)) return 0;
+      state.caught = state.caught || {};
+      const discovered = new Set(Array.isArray(state.secretDiscovered) ? state.secretDiscovered : []);
+      const entries = new Set();
+      for (const fish of location.fish) {
+        const name = fish[0];
+        if (!name) continue;
+        state.caught[name] = Math.max(1, state.caught[name] || 0);
+        entries.add(name);
+        if (isSecretFish(fish)) discovered.add(name);
+      }
+      state.secretDiscovered = [...discovered];
+      return entries.size;
+    }
+
     function fishMeta(fish) { return (fish && fish[5] && typeof fish[5] === "object") ? fish[5] : {}; }
     function getSeason() {
       if ((state.seasonOverrideUntil || 0) > Date.now() && SEASONS.includes(state.seasonOverride)) return state.seasonOverride;
@@ -1268,6 +1295,12 @@ let state = loadState();
         state.redeemedCodes.push(code);
         message.textContent = "SECRETADMINMAX redeemed: 100% ALL Bestiaries + $1,000,000,000,000,000 Gold!";
         addLog("SECRETADMINMAX completed every bestiary (including optional and Secret fish) and granted $1,000,000,000,000,000 Gold.", "success");
+      } else if (Object.prototype.hasOwnProperty.call(TRUE_BESTIARY_CODES, code)) {
+        const locationId = TRUE_BESTIARY_CODES[code];
+        const completed = grantTrueLocationBestiary(locationId);
+        state.redeemedCodes.push(code);
+        message.textContent = `${code} redeemed: 100% True Bestiary for ${locations[locationId].name} (${completed} entries, including optional and Secret fish)!`;
+        addLog(`${code} completed the True Bestiary for ${locations[locationId].name}, including every optional, Extinct and Secret entry.`, "success");
       } else if (code === "QUESTROD") {
         const granted = grantQuestRods();
         state.redeemedCodes.push(code);
