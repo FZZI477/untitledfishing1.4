@@ -18,7 +18,7 @@ let state = loadState();
     let pendingBait = null; // Chosen for a cast, consumed only when a fish bites.
     let hookedBait = null;  // Remains active until that hook's catch/escape resolves.
     const baits = window.createBaits({
-      state:()=>state, log:(...args)=>addLog(...args), render:()=>render()
+      state:()=>state, log:(...args)=>addLog(...args), render:()=>render(), save:()=>saveState()
     });
     function currentBaitEffect() {
       const chosen=hookedBait?.effect || pendingBait?.effect || baits.selected();
