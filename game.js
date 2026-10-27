@@ -839,7 +839,7 @@ let state = loadState();
       buildMiniDecor(fish);
       document.getElementById("minigameModal").classList.add("active");
 
-      const interval=Math.max(260,650-Math.min(250,effectiveStats(rod).haste))*(currentBaitEffect()==="Moth"?.9:1);
+      const interval=Math.max(260,650-Math.min(250,effectiveStats(rod).haste))/(currentBaitEffect()==="Moth"?1.1:1);
       spawnShake();
       const spawnTick=()=>{
         if(!activeMini||activeMini.ended)return;
