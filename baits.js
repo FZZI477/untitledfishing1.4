@@ -15,7 +15,7 @@ const BAIT_TYPES = [
   {name:"Giant Beetle", description:"Shakes remain for 0.3 seconds longer."},
   {name:"Moth", description:"Shakes spawn 10% faster."},
   {name:"Magnet", description:"Only item catches can bite."},
-  {name:"Suspicious Bait", description:"Unknown effect. Changes each time this bait is hooked."},
+  {name:"Suspicious Bait", description:"??? (Unknown bait effect)"},
   {name:"Mushrooms", description:"Only fish exclusive to Spring, Autumn, or both."},
   {name:"Brine", description:"25% Dissolved Mutation; independently, 25% instant catch."},
   {name:"Fish Head", description:"+20 Haste; eligible shark-type fish are 1.3x more likely."},
@@ -104,7 +104,7 @@ window.createBaits = function(api) {
     const list=document.getElementById("baitList");
     if(!list)return;
     list.innerHTML='<div class="bait-row"><div><strong>No bait</strong><div class="small">Fish without consuming bait.</div></div><button class="pixel-button small-btn" onclick="equipBait(\'\')" '+(!name?'disabled':'')+'>'+(!name?'Equipped':'Unequip')+'</button></div>'+
-      BAIT_TYPES.map(b=>{
+      BAIT_TYPES.filter(b=>b.name!=="Suspicious Bait" || (s.baits[b.name]||0)>0).map(b=>{
         const qty=s.baits[b.name]||0,active=name===b.name;
         return `<div class="bait-row ${active?"bait-selected":""}"><div class="bait-info"><strong>${b.name}</strong><div class="small">${b.description}</div><div class="small">Box roll: 5% · Owned: ${qty}</div></div><button class="pixel-button small-btn" ${!qty||active?"disabled":""} onclick="equipBait('${b.name}')">${active?"Equipped":"Equip"}</button></div>`;
       }).join("");
