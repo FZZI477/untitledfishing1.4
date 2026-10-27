@@ -697,28 +697,46 @@ let state = loadState();
 
     function chooseFish() {
       maybeStartSharkEvents();
-      const rod=currentRod(), stats=effectiveStats(rod), period=getPeriod();
+      const rod=currentRod(), stats=effectiveStats(rod);
       const secretPool=(locations[state.location]?.fish||[]).filter(f=>isSecretFish(f)&&fishConditionMet(f,true));
       const secretRate=rod.id==="fishy16"?1/333:1/1000;
       for(const secretFish of secretPool){
         if(Math.random()<secretRate) return {fish:secretFish,chance:secretRate*100,secret:true};
       }
-      let pool=getAvailablePool();
+
+      const pool=getAvailablePool();
       if(!pool.length){ addLog("Nothing can be hooked under the current conditions.","warning"); return null; }
-      const lunarEligible=state.location==="aurora"&&period==="night"&&rod.id!=="electromagnetic";
-      if(lunarEligible&&Math.random()<.10) return {fish:locations.aurora.fish.find(f=>f[0]==="Lunar Lurker"),chance:10};
-      if(currentWeatherName()==="Flood"&&Math.random()<.10){
-        const elder=eventBestiaries.flood.find(f=>f[0]==="Elder Kelpie");
-        if(elder)return {fish:elder,chance:10};
-      }
       const luckFactor=Math.max(-100,stats.luck);
-      const weighted=pool.map(f=>{const rank=rarityOrder.indexOf(f[1]);const base=rarityWeights[f[1]];const boost=Math.pow(1+Math.max(0,luckFactor)/120,rank*.72);const penalty=luckFactor<0?Math.pow(.92,rank*Math.abs(luckFactor)/5):1;return {f,weight:base*boost*penalty};});
-      const total=weighted.reduce((a,x)=>a+x.weight,0);let roll=Math.random()*total,selected=weighted[0];
+      const weighted=pool.map(f=>{
+        const rank=rarityOrder.indexOf(f[1]), base=rarityWeights[f[1]];
+        const boost=Math.pow(1+Math.max(0,luckFactor)/120,rank*.72);
+        const penalty=luckFactor<0?Math.pow(.92,rank*Math.abs(luckFactor)/5):1;
+        return {f,weight:base*boost*penalty};
+      });
+      const total=weighted.reduce((a,x)=>a+x.weight,0);
+      let roll=Math.random()*total,selected=weighted[0];
       for(const x of weighted){roll-=x.weight;if(roll<=0){selected=x;break;}}
-      const selectedChance=(selected.weight/total)*100*(lunarEligible?.9:1);
-      if(selected.f[0]==="Blue Whale"&&Math.random()<.10) return {fish:locations.shark.fish.find(f=>f[0]==="Moby"),chance:selectedChance*.10};
-      if(selected.f[0]==="Reef Titan"&&Math.random()<.10) return {fish:locations.grandreef.fish.find(f=>f[0]==="Grand Reef Titan"),chance:selectedChance*.10};
-      return {fish:selected.f,chance:selectedChance};
+
+      const baseChance=selected.weight/total*100;
+      // Replacement RNG runs ONLY after its parent fish wins the weighted roll.
+      // The parent keeps 90% of its encounters; its Extinct variant replaces 10%.
+      const replacements={
+        "Mosslurker": {name:"Lunar Lurker",location:"aurora",enabled:state.location==="aurora"&&getPeriod()==="night"},
+        "Blue Whale": {name:"Moby",location:"shark",enabled:state.location==="shark"},
+        "Reef Titan": {name:"Grand Reef Titan",location:"grandreef",enabled:state.location==="grandreef"},
+        "Kelpie": {name:"Elder Kelpie",event:"flood",enabled:currentWeatherName()==="Flood"}
+      };
+      const replacement=replacements[selected.f[0]];
+      if(replacement?.enabled && rod.id!=="electromagnetic"){
+        const replacementFish=replacement.location
+          ? locations[replacement.location]?.fish.find(f=>f[0]===replacement.name)
+          : eventBestiaries[replacement.event]?.find(f=>f[0]===replacement.name);
+        if(replacementFish){
+          if(Math.random()<.10) return {fish:replacementFish,chance:baseChance*.10};
+          return {fish:selected.f,chance:baseChance*.90};
+        }
+      }
+      return {fish:selected.f,chance:baseChance};
     }
 
     function castLine() {
