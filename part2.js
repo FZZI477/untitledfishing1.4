@@ -75,6 +75,10 @@ window.createPart2 = function(api) {
   }
   function take(name,qty=1){return takeWhere(i=>i.displayName===name,qty);}
   function grant(name,qty=1,mutation=null,mult=1){
+    if(name==="Brine Bait" && api.addBait){
+      api.addBait("Brine",qty);
+      return;
+    }
     const f=api.fish(name);
     api.addInventory(name,f?f[2]:0,mutation,mult,qty);
     if(name.endsWith("Blessing"))api.favorite(name,true);
