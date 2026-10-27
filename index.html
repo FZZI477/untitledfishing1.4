@@ -58,8 +58,10 @@
             <button id="switchLocationBtn" class="pixel-button">Travel</button>
           </div>
           <div class="footer-actions">
+            <button id="openBaitBtn" class="pixel-button">🪱 Equip Bait</button>
             <button id="adventureBtn" class="pixel-button primary" style="display:none">🧭 Adventure</button>
           </div>
+          <div id="equippedBaitSummary" class="small">Equipped: None</div>
         </aside>
 
         <section class="pixel-panel status-panel">
@@ -114,6 +116,13 @@
               <div id="tikiTotemCount" class="small">Owned: 0</div>
             </div>
           </div>
+          <div class="rod-card large-card">
+            <div class="rod-head">
+              <div><strong>🎁 Bait Box</strong><div class="small">Opens immediately to reveal 5 random baits. Each of the 20 baits has an independent 5% chance per roll. Bait Boxes can also be fished up at The Grand Reef.</div></div>
+              <button id="buyBaitBoxBtn" class="pixel-button primary">Buy $100</button>
+            </div>
+            <div id="baitTotalCount" class="small">Baits owned: 0</div>
+          </div>
           <button id="useSunMaskBtn" class="pixel-button primary">Use Sunstone</button>
         </div>
       </div>
@@ -142,6 +151,7 @@
           <p>Cast your line, wait for the lure, then click the pixel-bubbles before they vanish. Each successful click adds 5% catch progress.</p>
           <p>Steadiness increases the reaction time of every shake. Luck shifts catch rolls toward rarer fish, while Haste shortens lure time.</p>
           <p>Every successful catch can receive a mutation. Some rods force special mutations, and weather can also change what appears.</p>
+          <p>Buy $100 Bait Boxes in the Shop or fish them up at The Grand Reef. Every box instantly awards five randomly rolled baits (5% per bait type for each roll). Equip bait below the Travel button; each successful hook consumes one bait whether or not you catch the fish.</p>
           <p>Use the launchpad in the bottom-right corner to jump between Fishing, Rods, Bestiary, Inventory, Shop, Codes, and this guide.</p>
           <div class="footer-actions">
             <button id="resetBtn" class="pixel-button">Reset Save Data</button>
@@ -176,6 +186,17 @@
     </div>
   </div>
 
+  <div id="baitModal" class="modal modal-lite">
+    <div class="bag-modal pixel-panel">
+      <div class="section-head compact">
+        <div><div class="pixel-kicker">PART 3 · FISHING SUPPLIES</div><h3>Equip Bait</h3></div>
+        <button id="closeBaitBtn" class="pixel-button small-btn">Close</button>
+      </div>
+      <p class="small">One bait is consumed when a fish bites, even if it escapes. All 20 bait types have a 5% chance per Bait Box roll. Suspicious Bait's actual effect remains hidden.</p>
+      <div id="baitList" class="bag-list"></div>
+    </div>
+  </div>
+
   <div id="fatalError" style="display:none;position:fixed;left:12px;right:12px;bottom:12px;z-index:9999;background:#5d1320;color:white;border:2px solid #ff8798;border-radius:12px;padding:12px;white-space:pre-wrap;font-family:monospace"></div>
 
   <div id="minigameModal" class="modal">
@@ -206,6 +227,7 @@
   <script src="rods.js"></script>
   <script src="saves.js"></script>
   <script src="part2.js"></script>
+  <script src="baits.js"></script>
   <script src="game.js"></script>
 </body>
 </html>
