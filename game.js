@@ -15,6 +15,28 @@ let state = loadState();
     const SECRET_NAMES = new Set(["Cosmic Pearl","The Sun Idol","The Moon Idol"]);
     const TIKI_TOTEM_PRICE = 1000;
     state.favoriteFish = Array.isArray(state.favoriteFish) ? state.favoriteFish : [];
+    let pendingBait = null; // Chosen for a cast, consumed only when a fish bites.
+    let hookedBait = null;  // Remains active until that hook's catch/escape resolves.
+    const baits = window.createBaits({
+      state:()=>state, log:(...args)=>addLog(...args), render:()=>render()
+    });
+    function currentBaitEffect() {
+      const chosen=hookedBait?.effect || pendingBait?.effect || baits.selected();
+      // Suspicious Bait rolls its concealed effect on hook, not while idle.
+      return chosen==="Suspicious Bait" ? null : chosen;
+    }
+    function baitAllowsFish(f, effect=currentBaitEffect()) {
+      if(effect==="Algae" && f[3]===true)return false;
+      if(effect==="Magnet" && f[3]!==true)return false;
+      if(effect==="Mushrooms"){
+        const seasons=fishMeta(f).seasons;
+        return Array.isArray(seasons) && seasons.length>0 && seasons.every(x=>x==="Spring"||x==="Autumn");
+      }
+      return true;
+    }
+    function baitSharkType(f) {
+      return /shark|megalodon|helipricon|megamouth|hammerhead/i.test(f[0]);
+    }
 
     // Quest/Temple rods are unlocked by QuestRod or their normal quests.
     function grantQuestRods() {
@@ -76,6 +98,7 @@ let state = loadState();
       fish:name=>allFishPool().find(f=>f[0]===name),
       allFish:()=>allFishPool(),
       addInventory:(...args)=>addInventory(...args),
+      addBait:(name,qty)=>baits.add(name,qty),
       favorite:(name,favorite)=>setFavoriteFish(name,favorite),
       log:(...args)=>addLog(...args),
       save:()=>saveState(),render:()=>render(),
@@ -169,6 +192,15 @@ let state = loadState();
       stats.steady += weather.steadyAdd || 0;
       if (eventActive("sharkMigrationUntil") && state.location === "shark") stats.luck *= 1.5;
       if (rod.id === "megaLoad" && state.megaLuckStacks > 0) stats.luck *= 1 + state.megaLuckStacks * .075;
+      const bait=currentBaitEffect();
+      if(bait==="Worm"){stats.luck+=10;stats.haste-=5;}
+      else if(bait==="Insect"){stats.luck+=5;stats.haste+=5;}
+      else if(bait==="Grub"){stats.luck+=30;stats.steady-=10;}
+      else if(bait==="Parasite"){stats.luck*=.5;stats.haste+=30;stats.steady+=30;}
+      else if(bait==="Salted Seaweed"){stats.luck+=10;stats.haste+=10;stats.steady+=10;}
+      else if(bait==="Fish Head"){stats.haste+=20;}
+      else if(bait==="Shark Head"){stats.steady+=30;}
+      else if(bait==="Skeleton"){stats.luck-=20;}
       return stats;
     }
 
@@ -474,6 +506,7 @@ let state = loadState();
       renderBestiary();
       renderInventory();
       renderRodBag();
+      baits.render();
       renderCodeEffects();
       renderLog();
       updateClock();
@@ -692,14 +725,15 @@ let state = loadState();
 
       let pool=source.filter(f=>fishConditionMet(f,false));
       if(rod.id==="electromagnetic") pool=pool.filter(f=>f[3]===true);
+      pool=pool.filter(f=>baitAllowsFish(f));
       return pool;
     }
 
     function chooseFish() {
       maybeStartSharkEvents();
       const rod=currentRod(), stats=effectiveStats(rod);
-      const secretPool=(locations[state.location]?.fish||[]).filter(f=>isSecretFish(f)&&fishConditionMet(f,true));
-      const secretRate=rod.id==="fishy16"?1/333:1/1000;
+      const secretPool=(locations[state.location]?.fish||[]).filter(f=>isSecretFish(f)&&fishConditionMet(f,true)&&baitAllowsFish(f));
+      const secretRate=Math.max(rod.id==="fishy16"?1/333:1/1000,currentBaitEffect()==="Larva"?.002:0);
       for(const secretFish of secretPool){
         if(Math.random()<secretRate) return {fish:secretFish,chance:secretRate*100,secret:true};
       }
@@ -711,7 +745,8 @@ let state = loadState();
         const rank=rarityOrder.indexOf(f[1]), base=rarityWeights[f[1]];
         const boost=Math.pow(1+Math.max(0,luckFactor)/120,rank*.72);
         const penalty=luckFactor<0?Math.pow(.92,rank*Math.abs(luckFactor)/5):1;
-        return {f,weight:base*boost*penalty};
+        const sharkBoost=currentBaitEffect()==="Fish Head" && baitSharkType(f)?1.3:1;
+        return {f,weight:base*boost*penalty*sharkBoost};
       });
       const total=weighted.reduce((a,x)=>a+x.weight,0);
       let roll=Math.random()*total,selected=weighted[0];
@@ -740,11 +775,12 @@ let state = loadState();
     }
 
     function castLine() {
-      if (activeMini) return;
+      if (activeMini || pendingBait || hookedBait || document.getElementById("fishButton").disabled) return;
       if(currentWeatherName()==="Drought" && !currentRod().superlure){
         addLog("Drought prevents normal fishing. Equip a rod with Superlure.","warning");
         return;
       }
+      pendingBait=baits.prepare();
       const rod = currentRod();
       const stats = effectiveStats(rod);
       const waitSeconds = Math.max(0, (100 - stats.haste) * .075);
@@ -758,8 +794,18 @@ let state = loadState();
         fishButton.textContent = `Cast with ${currentRod().name}`;
         renderFishingPanel();
         const encounter = chooseFish();
-        if(!encounter){ fishButton.disabled=false; fishButton.textContent=`Cast with ${currentRod().name}`; renderFishingPanel(); return; }
+        if(!encounter){
+          pendingBait=null;
+          fishButton.disabled=false; fishButton.textContent=`Cast with ${currentRod().name}`;
+          renderFishingPanel();return;
+        }
+        hookedBait=baits.consume(pendingBait);
+        pendingBait=null;
         if (currentRod().id === "megaLoad") state.megaLuckStacks = 0;
+        if (hookedBait?.effect==="Brine" && Math.random()<.25) {
+          processCatch(encounter.fish, {completed:true,fallback:false,perfect:false,encounterChance:encounter.chance,baitInstant:true});
+          return;
+        }
         if (currentRod().id === "bonetrapper" && Math.random() < .20) {
           processCatch(encounter.fish, {completed:true, fallback:false, perfect:true, encounterChance:encounter.chance, trapped:true});
         } else startMinigame(encounter.fish, encounter.chance);
@@ -793,7 +839,7 @@ let state = loadState();
       buildMiniDecor(fish);
       document.getElementById("minigameModal").classList.add("active");
 
-      const interval=Math.max(260,650-Math.min(250,effectiveStats(rod).haste));
+      const interval=Math.max(260,650-Math.min(250,effectiveStats(rod).haste))*(currentBaitEffect()==="Moth"?.9:1);
       spawnShake();
       const spawnTick=()=>{
         if(!activeMini||activeMini.ended)return;
@@ -884,6 +930,7 @@ let state = loadState();
 
       let life = 1280 + Math.max(0, effectiveStats().steady) * 60;
       life *= currentWeather().life;
+      if(currentBaitEffect()==="Giant Beetle")life+=300;
       if (currentRod().id === "harpoon" && isSharkFish(activeMini.fish[0])) life += 1000;
       if (activeMini.slowShakes > 0) { life *= 1.66; activeMini.slowShakes--; }
 
@@ -974,7 +1021,7 @@ let state = loadState();
       const period = getPeriod();
       let roll = Math.random();
       let cumulative = 0;
-      const chanceBoost = currentRod().id === "megaLoad" ? 1.15 : 1;
+      const chanceBoost=(currentRod().id === "megaLoad" ? 1.15 : 1)*(currentBaitEffect()==="Tofu"?1.2:1);
       for (const mutation of naturalMutations) {
         if (mutation.nightOnly && period !== "night") continue;
         cumulative += mutation.chance * chanceBoost;
@@ -986,6 +1033,7 @@ let state = loadState();
     function processCatch(fish, result) {
       const [name, rarity, basePrice] = fish;
       const rod = currentRod();
+      const baitEffect=currentBaitEffect();
       let mutation = null;
       let multiplier = 1;
       let extraCopies = 0;
@@ -1073,6 +1121,10 @@ let state = loadState();
         }
       }
 
+      // Bait mutation checks take priority over natural/rod/weather mutations.
+      if(baitEffect==="Vitamins"){mutation="Nutritious Mutation";multiplier=1.75;}
+      else if(baitEffect==="Brine" && Math.random()<.25){mutation="Dissolved Mutation";multiplier=1;}
+
       if (rod.id === "fortuneous" && Math.random() < .10) extraCopies++;
       if (rod.id === "sunslasher" && (state.sunslasherLevel||1)>=4 && Math.random()<.15)extraCopies++;
 
@@ -1087,6 +1139,7 @@ let state = loadState();
       if(rod.id==="sun16"&&getPeriod()==="night")weightFactor=.9;
       if(rod.id==="moon16")weightFactor=getPeriod()==="night"?1.2:.5;
       if(rod.id==="melody16")weightFactor=1.15;
+      if(baitEffect==="Egg")weightFactor*=1.1;
       addInventory(name, basePrice, mutation, multiplier * weatherValue, 1, weightFactor);
       if (extraCopies) {
         if (extraMutation) {
@@ -1104,6 +1157,11 @@ let state = loadState();
       }
       state.lastCaughtRarity=rarity;
       p2.onCatch(name,mutation);
+      if(name==="Bait Box")baits.openBox("Fished Bait Box");
+      if(baitEffect==="Shark Head" && !eventActive("sharkMigrationUntil") && Math.random()<.01){
+        state.sharkMigrationUntil=Date.now()+20*60*1000;
+        addLog("Shark Head bait triggered Shark Migration for 20 minutes!","success");
+      }
 
       if (eventActive("whaleAbundanceUntil")) {
         if (name === "Moby") {
@@ -1139,6 +1197,8 @@ let state = loadState();
       if (extraCopies) details += ` · ${extraCopies} bonus copy`;
       if (mysteryCount) details += ` · ${mysteryCount} mystery companion${mysteryCount>1?"s":""}`;
       if (result.trapped) details += " · instantly trapped";
+      if(result.baitInstant)details+=" · instantly caught by Brine bait";
+      if(hookedBait)details+=` · used ${hookedBait.name} bait`;
       if (weatherValue !== 1) details += ` · ${weatherName} value bonus`;
       if(weightFactor!==1)details+=` · ${weightFactor}× weight`;
       const finalUnitValue = Math.round(basePrice * multiplier * weatherValue);
@@ -1187,6 +1247,8 @@ let state = loadState();
 
     function afterCatchAttempt() {
       const rod = currentRod();
+      hookedBait=null;
+      pendingBait=null;
 
       if (rod.id === "splitbranch") {
         state.splitMode = Math.random() < .5 ? 0 : 1;
@@ -1388,6 +1450,15 @@ let state = loadState();
     }
 
     document.getElementById("fishButton").addEventListener("click", castLine);
+    document.getElementById("buyBaitBoxBtn").addEventListener("click",()=>baits.buyBox());
+    document.getElementById("openBaitBtn").addEventListener("click",()=>{
+      baits.render();document.getElementById("baitModal").classList.add("active");
+    });
+    document.getElementById("closeBaitBtn").addEventListener("click",()=>document.getElementById("baitModal").classList.remove("active"));
+    document.getElementById("baitModal").addEventListener("click",event=>{
+      if(event.target===document.getElementById("baitModal"))document.getElementById("baitModal").classList.remove("active");
+    });
+    window.equipBait=name=>baits.equip(name);
     document.getElementById("adventureBtn").addEventListener("click",()=>{if(state.location==="rainbow")setScreen("adventure");});
     document.getElementById("switchLocationBtn").addEventListener("click", switchLocation);
     document.getElementById("sellAllBtn").addEventListener("click", sellAll);
@@ -1404,6 +1475,7 @@ let state = loadState();
       if (!confirm("Delete all money, rods, catches, and bestiary progress?")) return;
       localStorage.removeItem(SAVE_KEY);
       state = freshState();
+      pendingBait=null;hookedBait=null;
       activeScreen = 'fishing';
       render();
     });
