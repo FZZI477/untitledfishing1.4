@@ -8,6 +8,8 @@ function freshState() {
         location:"gravitas",
         equipped:"twig",
         owned:["twig"],
+        baits:{},
+        equippedBait:"",
         inventory:{},
         caught:{},
         mutations:{},
