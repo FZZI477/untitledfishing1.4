@@ -67,6 +67,7 @@ window.createBaits = function(api) {
     s.baits[prepared.name]--;
     if(!s.baits[prepared.name])delete s.baits[prepared.name];
     if(s.equippedBait===prepared.name && !(s.baits[prepared.name]>0))s.equippedBait="";
+    if(api.save)api.save(); // Save the consumed bait immediately, even if the game is reloaded mid-hook.
     return prepared;
   }
   function equip(name) {
